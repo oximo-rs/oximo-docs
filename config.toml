@@ -1,0 +1,28 @@
+base_url = "https://oximo.dev"
+title = "oximo"
+description = "A Rust algebraic modeling library for mathematical optimization"
+compile_sass = true
+build_search_index = true
+generate_feeds = false
+
+[markdown]
+insert_anchor_links = "left"
+
+[markdown.highlighting]
+style = "class"
+light_theme = "one-light"
+dark_theme = "one-dark-pro"
+
+[extra]
+mode = "docs"
+github = "https://github.com/oximo-rs/oximo"
+docs_rs = "https://docs.rs/oximo"
+favicon = "img/favicon.svg"
+show_theme_toggle = true
+tagline = "Define optimization models declaratively in Rust. Solver-agnostic and type-safe."
+
+[extra.versions]
+current = "0.5.1"
+list = [
+    { version = "0.5.1", url = "/", label = "latest" },
+]

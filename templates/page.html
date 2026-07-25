@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
+
+{% block body_class %}page-{{ page.slug }}{% endblock %}
+
+{% set mode = config.extra.mode | default(value="site") %}
+
+{% block sidebar %}
+{% if mode == "docs" %}
+{% include "partials/sidebar.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav_buttons %}
+{% include "partials/nav-buttons.html" %}
+{% endblock %}
+
+{% block content %}
+<article class="article" itemscope itemtype="https://schema.org/Article" aria-labelledby="article-title">
+    {# For docs/book mode, show title as visible heading #}
+    <header class="article__header article__header--docs">
+        <h1 id="article-title" itemprop="headline">{{ page.title }}</h1>
+        {% if page.description %}
+        <p class="article__description" itemprop="description">{{ page.description }}</p>
+        {% endif %}
+    </header>
+
+    <div class="article__content" itemprop="articleBody">
+        {{ page.content | safe }}
+    </div>
+
+    {# Hidden metadata for structured data #}
+    {% if config.extra.author.name is defined and config.extra.author.name %}
+    <meta itemprop="author" content="{{ config.extra.author.name }}">
+    {% endif %}
+    {% if page.updated is defined and page.updated %}
+    <meta itemprop="dateModified" content="{{ page.updated | date(format='%Y-%m-%d') }}">
+    {% endif %}
+</article>
+
+<nav class="page-nav" aria-label="Page navigation">
+    {% if page.earlier %}
+    <a href="{{ page.earlier.permalink | safe }}" class="page-nav__link page-nav__link--prev" rel="prev" aria-label="Previous page: {{ page.earlier.title }}">
+        <span class="page-nav__label" aria-hidden="true">Previous</span>
+        <span class="page-nav__title">{{ page.earlier.title }}</span>
+    </a>
+    {% endif %}
+
+    {% if page.later %}
+    <a href="{{ page.later.permalink | safe }}" class="page-nav__link page-nav__link--next" rel="next" aria-label="Next page: {{ page.later.title }}">
+        <span class="page-nav__label" aria-hidden="true">Next</span>
+        <span class="page-nav__title">{{ page.later.title }}</span>
+    </a>
+    {% endif %}
+</nav>
+{% endblock %}

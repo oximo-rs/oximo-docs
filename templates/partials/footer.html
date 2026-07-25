@@ -1,0 +1,27 @@
+<footer class="footer" role="contentinfo">
+    <div class="container">
+        <div class="footer__content">
+            <p class="footer__copyright">
+                &copy; {{ now() | date(format="%Y") }} {{ config.extra.author.name | default(value=config.title) }}.
+                Dual licensed under <a href="https://github.com/oximo-rs/oximo/blob/main/LICENSE-MIT" target="_blank" rel="noopener noreferrer">MIT</a>
+                and <a href="https://github.com/oximo-rs/oximo/blob/main/LICENSE-APACHE" target="_blank" rel="noopener noreferrer">Apache 2.0</a>.
+            </p>
+
+            <nav class="footer__links" aria-label="Footer links">
+                {% if config.extra.github %}
+                <a href="{{ config.extra.github }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+                {% endif %}
+                {% if config.extra.docs_rs %}
+                <a href="{{ config.extra.docs_rs }}" target="_blank" rel="noopener noreferrer">docs.rs</a>
+                {% endif %}
+                <a href="https://crates.io/crates/oximo" target="_blank" rel="noopener noreferrer">crates.io</a>
+                <a href="{{ get_url(path='@/roadmap.md') | safe }}">Roadmap</a>
+                {% if config.extra.social_links %}
+                {% for link in config.extra.social_links %}
+                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a>
+                {% endfor %}
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+</footer>

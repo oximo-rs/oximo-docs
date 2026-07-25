@@ -1,0 +1,37 @@
+{# Right sidebar for "On this page" headings - docs mode (supports both pages and sections) #}
+{% set toc_items = page.toc | default(value=[]) %}
+{% if not toc_items and section %}
+    {% set toc_items = section.toc | default(value=[]) %}
+{% endif %}
+
+{% if toc_items %}
+<aside id="page-toc-panel" class="page-toc-panel" aria-hidden="true" aria-label="On this page">
+    <div class="page-toc-panel__content">
+        <div class="page-toc-panel__header">
+            <span class="page-toc-panel__title">On this page</span>
+        </div>
+        <nav class="page-toc-panel__nav" aria-label="Page sections">
+            <ul class="page-toc-panel__list">
+                {% for item in toc_items %}
+                <li class="page-toc-panel__item">
+                    <a href="#{{ item.id }}" class="page-toc-panel__link">
+                        {{ item.title }}
+                    </a>
+                    {% if item.children %}
+                    <ul class="page-toc-panel__list page-toc-panel__list--nested">
+                        {% for child in item.children %}
+                        <li class="page-toc-panel__item">
+                            <a href="#{{ child.id }}" class="page-toc-panel__link">
+                                {{ child.title }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    </div>
+</aside>
+{% endif %}

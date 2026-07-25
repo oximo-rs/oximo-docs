@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.title }}{% endblock %}
+
+{% block content %}
+<div class="home-grid home-grid--left" aria-hidden="true"></div>
+<div class="home-grid home-grid--right" aria-hidden="true"></div>
+<div class="docs-home">
+    <section class="docs-home__hero">
+        <div class="docs-home__logo" role="img" aria-label="oximo"></div>
+
+        <div class="docs-home__eyebrow">
+            <span class="docs-home__eyebrow-text">{{ config.description }}</span>
+        </div>
+
+        <p class="docs-home__lede">{{ config.extra.tagline | default(value="A typed, batteries-included SDK for modern applications. Type-safe by default, framework-agnostic, and built for production.") }}</p>
+
+        <div class="docs-home__actions">
+            <a href="{{ get_url(path='@/installation.md') | safe }}" class="docs-home__btn docs-home__btn--primary">
+                Get started
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+            {% if config.extra.github %}
+            <a href="{{ config.extra.github }}" class="docs-home__btn" target="_blank" rel="noopener noreferrer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+                GitHub
+            </a>
+            {% endif %}
+            {% if config.extra.docs_rs %}
+            <a href="{{ config.extra.docs_rs }}" class="docs-home__btn" target="_blank" rel="noopener noreferrer">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                API reference (docs.rs)
+            </a>
+            {% endif %}
+        </div>
+
+
+        <div class="docs-home__install" role="group" aria-label="Install command">
+            <span class="docs-home__install-prompt" aria-hidden="true">$</span>
+            <code class="docs-home__install-cmd"><span class="docs-home__install-cmd-name">cargo</span> add oximo</code>
+            <button class="docs-home__install-copy" type="button" data-copy="cargo add oximo" aria-label="Copy install command">
+                <svg class="docs-home__install-copy-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span class="docs-home__install-copy-label">Copy</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="docs-home__section" aria-labelledby="docs-home-example">
+        <header class="docs-home__section-header">
+            <h2 class="docs-home__section-title" id="docs-home-example">Math to Code</h2>
+        </header>
+        <div class="example">
+            <figure class="example__pane">
+                <figcaption class="example__caption">Mathematical model</figcaption>
+                <div class="example__math">
+\[
+\begin{aligned}
+\max \quad & 3x + 4y \\
+\text{s.t.} \quad & x + 2y \le 14 \\
+                  & 3x \ge y \\
+                  & x \le y + 2 \\
+                  & x \ge 0 \\
+                  & 0 \le y \le 4
+\end{aligned}
+\]
+                </div>
+                <div class="example__solution">
+                    <span class="example__solution-label">solution</span>
+                    <span class="example__solution-result">\(\text{obj} = 34,\ x = 6,\ y = 4\)</span>
+                </div>
+            </figure>
+
+            <figure class="example__pane">
+                <figcaption class="example__caption">oximo code</figcaption>
+<pre class="example__code"><code><span class="tok-kw">use</span> <span class="tok-ns">oximo::prelude</span>::*;
+<span class="tok-kw">use</span> <span class="tok-ns">oximo::solvers</span>::<span class="tok-ty">Highs</span>;
+
+<span class="tok-kw">let</span> m = <span class="tok-ty">Model</span>::new(<span class="tok-str">"transport"</span>);
+<span class="tok-mac">variable!</span>(m, x &gt;= <span class="tok-num">0.0</span>);
+<span class="tok-mac">variable!</span>(m, <span class="tok-num">0.0</span> &lt;= y &lt;= <span class="tok-num">4.0</span>);
+
+<span class="tok-mac">constraint!</span>(m, c1, x + <span class="tok-num">2.0</span> * y &lt;= <span class="tok-num">14.0</span>);
+<span class="tok-mac">constraint!</span>(m, c2, <span class="tok-num">3.0</span> * x &gt;= y);
+<span class="tok-mac">constraint!</span>(m, c3, x &lt;= y + <span class="tok-num">2.0</span>);
+<span class="tok-mac">objective!</span>(m, <span class="tok-ty">Max</span>, <span class="tok-num">3.0</span> * x + <span class="tok-num">4.0</span> * y);
+
+<span class="tok-kw">let</span> result = <span class="tok-ty">Highs</span>.solve(&amp;m, &amp;<span class="tok-ty">HighsOptions</span>::default())?;
+<span class="tok-mac">println!</span>(<span class="tok-str">"obj = {:?}"</span>, result.objective()); <span class="tok-cmt">// 34.0</span>
+<span class="tok-mac">println!</span>(<span class="tok-str">"x   = {:?}"</span>, result.value_of(x)); <span class="tok-cmt">// 6.0</span>
+<span class="tok-mac">println!</span>(<span class="tok-str">"y   = {:?}"</span>, result.value_of(y)); <span class="tok-cmt">// 4.0</span>
+</code></pre>
+            </figure>
+        </div>
+    </section>
+
+    {% set section = get_section(path="_index.md") %}
+    {% if section.pages %}
+    <section class="docs-home__section" aria-labelledby="docs-home-guides">
+        <header class="docs-home__section-header">
+            <h2 class="docs-home__section-title" id="docs-home-guides">Guides</h2>
+        </header>
+        <ul class="docs-home__list" role="list">
+            {% for page in section.pages %}
+            {% if not page.extra.hide_from_toc %}
+            <li class="docs-home__list-item">
+                <a href="{{ page.permalink | safe }}" class="docs-home__list-link">
+                    <span class="docs-home__list-index" aria-hidden="true">{{ loop.index }}</span>
+                    <span class="docs-home__list-body">
+                        <span class="docs-home__list-title">{{ page.title }}</span>
+                        {% if page.description %}
+                        <span class="docs-home__list-desc">{{ page.description }}</span>
+                        {% endif %}
+                    </span>
+                    <svg class="docs-home__list-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </a>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <section class="docs-home__section" aria-labelledby="docs-home-resources">
+        <header class="docs-home__section-header">
+            <h2 class="docs-home__section-title" id="docs-home-resources">Resources</h2>
+        </header>
+        <ul class="docs-home__grid" role="list">
+            {% if config.extra.github %}
+            <li>
+                <a href="{{ config.extra.github }}" class="docs-home__card" target="_blank" rel="noopener noreferrer">
+                    <span class="docs-home__card-title">
+                        Source
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                    </span>
+                    <span class="docs-home__card-desc">View the code, file issues, send PRs.</span>
+                </a>
+            </li>
+            {% endif %}
+            <li>
+                <a href="{{ get_url(path='@/quickstart.md') | safe }}" class="docs-home__card">
+                    <span class="docs-home__card-title">Quickstart</span>
+                    <span class="docs-home__card-desc">Build and solve your first LP in under a minute.</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ get_url(path='@/modeling.md') | safe }}" class="docs-home__card">
+                    <span class="docs-home__card-title">Modeling</span>
+                    <span class="docs-home__card-desc">Variables, sets, expressions, and rule-style constraints.</span>
+                </a>
+            </li>
+            {% if config.build_search_index %}
+            <li>
+                <button type="button" class="docs-home__card docs-home__card--button search-toggle">
+                    <span class="docs-home__card-title">
+                        Search
+                        <kbd class="docs-home__kbd">/</kbd>
+                    </span>
+                    <span class="docs-home__card-desc">Jump to any page by keyword.</span>
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+    </section>
+</div>
+
+
+<script>
+(function(){
+    document.querySelectorAll('[data-copy]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var text = btn.getAttribute('data-copy');
+            navigator.clipboard.writeText(text).then(function(){
+                btn.classList.add('is-copied');
+                var label = btn.querySelector('.docs-home__install-copy-label');
+                var prev = label ? label.textContent : null;
+                if (label) label.textContent = 'Copied';
+                setTimeout(function(){
+                    btn.classList.remove('is-copied');
+                    if (label && prev !== null) label.textContent = prev;
+                }, 1600);
+            });
+        });
+    });
+})();
+</script>
+
+<script>
+(function(){
+    var CELL = 30, MAX = 2400;
+    var panels = document.querySelectorAll('.home-grid');
+    if(!panels.length) return;
+    var mq = window.matchMedia('(min-width: 1340px)');
+
+    function build(){
+        panels.forEach(function(p){
+            p.textContent = '';
+            if(!mq.matches) return;
+            var w = p.clientWidth, h = p.clientHeight;
+            if(w < 40 || h < 40) return;
+            var cols = Math.max(1, Math.round(w / CELL));
+            var rows = Math.max(1, Math.round(h / CELL));
+            var count = Math.min(cols * rows, MAX);
+            p.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+            p.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
+            var frag = document.createDocumentFragment();
+            for(var i = 0; i < count; i++){
+                var c = document.createElement('span');
+                c.className = 'home-grid__cell';
+                frag.appendChild(c);
+            }
+            p.appendChild(frag);
+        });
+    }
+
+    var t;
+    function schedule(){ clearTimeout(t); t = setTimeout(build, 150); }
+    build();
+    window.addEventListener('resize', schedule);
+    if(mq.addEventListener) mq.addEventListener('change', build);
+})();
+</script>
+{% endblock %}
