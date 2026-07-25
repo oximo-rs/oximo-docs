@@ -2,7 +2,7 @@ name = "oximo-docs"
 compatibility_date = "2026-07-22"
 
 [build]
-command = "./build.sh"
+command = "bash ./build.sh"
 
 [assets]
 directory = "./public"
