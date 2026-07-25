@@ -1,6 +1,6 @@
 base_url = "https://oximo.dev"
 title = "oximo"
-description = "A Rust algebraic modeling library for mathematical optimization"
+description = "oximo is a Rust algebraic modeling library for linear, mixed-integer, and nonlinear optimization."
 compile_sass = true
 build_search_index = true
 generate_feeds = false
@@ -20,6 +20,17 @@ docs_rs = "https://docs.rs/oximo"
 favicon = "img/favicon.svg"
 show_theme_toggle = true
 tagline = "Define optimization models declaratively in Rust. Solver-agnostic and type-safe."
+og_image = "img/logo-dark.svg"
+og_image_width = 2481
+og_image_height = 768
+og_image_alt = "Oximo logo"
+
+[extra.organization]
+name = "Oximo"
+url = "https://oximo.dev"
+logo = "img/favicon.svg"
+logo_width = 281
+logo_height = 273
 
 [extra.versions]
 current = "0.5.1"

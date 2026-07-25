@@ -146,30 +146,24 @@
                 "@id": "{{ config.base_url | safe }}#website",
                 "url": "{{ config.base_url | safe }}",
                 "name": "{{ config.title }}",
+                "alternateName": "oximo-rs",
                 "description": "{{ config.description }}",
                 "publisher": {
-                    "@id": "https://zentinelproxy.io/#organization"
+                    "@id": "{{ config.base_url | safe }}#organization"
                 },
-                "inLanguage": "{{ lang | default(value='en') }}",
-                "potentialAction": {
-                    "@type": "SearchAction",
-                    "target": {
-                        "@type": "EntryPoint",
-                        "urlTemplate": "{{ config.base_url | safe }}?q={search_term_string}"
-                    },
-                    "query-input": "required name=search_term_string"
-                }
+                "inLanguage": "{{ lang | default(value='en') }}"
             },
             {
                 "@type": "Organization",
-                "@id": "https://zentinelproxy.io/#organization",
-                "name": "{{ config.extra.author.name | default(value='raskell.io') }}",
-                "url": "https://zentinelproxy.io",
+                "@id": "{{ config.base_url | safe }}#organization",
+                "name": "{{ config.extra.organization.name }}",
+                "url": "{{ config.extra.organization.url | safe }}",
+                "sameAs": ["{{ config.extra.github | safe }}"],
                 "logo": {
                     "@type": "ImageObject",
-                    "url": "https://zentinelproxy.io/img/og-image.png",
-                    "width": 1200,
-                    "height": 630
+                    "url": "{{ get_url(path=config.extra.organization.logo) | safe }}",
+                    "width": {{ config.extra.organization.logo_width }},
+                    "height": {{ config.extra.organization.logo_height }}
                 }
             },
             {
@@ -191,9 +185,9 @@
             }
             {% if page %}
             ,{
-                "@type": "Article",
-                "@id": "{{ current_url | safe }}#article",
-                "isPartOf": {
+                "@type": "TechArticle",
+                "@id": "{{ current_url | safe }}#tech-article",
+                "mainEntityOfPage": {
                     "@id": "{{ current_url | safe }}#webpage"
                 },
                 "headline": "{{ page.title }}",
@@ -207,10 +201,10 @@
                 "dateModified": "{{ page.updated | date(format='%Y-%m-%dT%H:%M:%S') }}",
                 {% endif %}
                 "author": {
-                    "@id": "https://zentinelproxy.io/#organization"
+                    "@id": "{{ config.base_url | safe }}#organization"
                 },
                 "publisher": {
-                    "@id": "https://zentinelproxy.io/#organization"
+                    "@id": "{{ config.base_url | safe }}#organization"
                 },
                 {% if page.taxonomies.tags is defined %}
                 "keywords": "{{ page.taxonomies.tags | join(sep=', ') }}",

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ config.title }}{% endblock %}
+{% block title %}{{ config.title }}: Rust Algebraic Modeling Library{% endblock %}
 
 {% block content %}
 <div class="home-grid home-grid--left" aria-hidden="true"></div>
@@ -12,6 +12,8 @@
         <div class="docs-home__eyebrow">
             <span class="docs-home__eyebrow-text">{{ config.description }}</span>
         </div>
+
+        <h1 class="docs-home__title">Rust algebraic modeling for mathematical optimization</h1>
 
         <p class="docs-home__lede">{{ config.extra.tagline | default(value="A typed, batteries-included SDK for modern applications. Type-safe by default, framework-agnostic, and built for production.") }}</p>
 
