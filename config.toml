@@ -20,9 +20,9 @@ docs_rs = "https://docs.rs/oximo"
 favicon = "img/favicon.svg"
 show_theme_toggle = true
 tagline = "Define optimization models declaratively in Rust. Solver-agnostic and type-safe."
-og_image = "img/logo-dark.svg"
-og_image_width = 2481
-og_image_height = 768
+og_image = "img/og-image.jpg"
+og_image_width = 1200
+og_image_height = 630
 og_image_alt = "Oximo logo"
 
 [extra.organization]
