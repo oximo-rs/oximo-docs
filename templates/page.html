@@ -5,6 +5,7 @@
 {% block body_class %}page-{{ page.slug }}{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{{ get_url(path='docs.css') | safe }}">
 {% if page.extra.math | default(value=false) %}
 {% include "partials/math-head.html" %}
 {% endif %}

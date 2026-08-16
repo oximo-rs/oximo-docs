@@ -1,2 +1,53 @@
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/contrib/auto-render.min.js" crossorigin="anonymous" onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false},{left:'$$',right:'$$',display:true}],throwOnError:false});"></script>
+<script>
+(function() {
+    var katexBase = 'https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/';
+
+    function loadScript(src) {
+        return new Promise(function(resolve, reject) {
+            var script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    function renderMath() {
+        if (typeof renderMathInElement !== 'function') return;
+        renderMathInElement(document.body, {
+            delimiters: [
+                {left: '\\[', right: '\\]', display: true},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '$$', right: '$$', display: true}
+            ],
+            throwOnError: false
+        });
+    }
+
+    function loadMath() {
+        loadScript(katexBase + 'katex.min.js')
+            .then(function() {
+                return loadScript(katexBase + 'contrib/auto-render.min.js');
+            })
+            .then(renderMath)
+            .catch(function() {
+                // Leave the source notation visible if the optional CDN fails.
+            });
+    }
+
+    function schedule() {
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(loadMath, {timeout: 2500});
+        } else {
+            window.setTimeout(loadMath, 1000);
+        }
+    }
+
+    if (document.readyState === 'complete') {
+        schedule();
+    } else {
+        window.addEventListener('load', schedule, {once: true});
+    }
+})();
+</script>
