@@ -15,6 +15,10 @@ dark_theme = "one-dark-pro"
 
 [extra]
 mode = "docs"
+channel = "stable"
+stable_version = "0.5.1"
+stable_url = "/"
+dev_url = "/dev/"
 github = "https://github.com/oximo-rs/oximo"
 docs_rs = "https://docs.rs/oximo"
 favicon = "img/favicon.png"

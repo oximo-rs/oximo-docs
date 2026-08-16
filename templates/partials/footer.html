@@ -15,7 +15,9 @@
                 <a href="{{ config.extra.docs_rs }}" target="_blank" rel="noopener noreferrer">docs.rs</a>
                 {% endif %}
                 <a href="https://crates.io/crates/oximo" target="_blank" rel="noopener noreferrer">crates.io</a>
+                {% if config.extra.channel | default(value="stable") != "dev" %}
                 <a href="{{ get_url(path='@/roadmap.md') | safe }}">Roadmap</a>
+                {% endif %}
                 {% if config.extra.social_links %}
                 {% for link in config.extra.social_links %}
                 <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a>

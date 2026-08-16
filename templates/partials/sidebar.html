@@ -61,15 +61,17 @@
         <div class="sidebar__actions-mobile">
             {# Version picker #}
             {% if config.extra.versions is defined %}
+            {% set is_dev = config.extra.channel | default(value="stable") == "dev" %}
             <div class="sidebar__action">
                 <span class="sidebar__action-label">Version</span>
                 <div class="sidebar__version">
-                    <span class="sidebar__version-current">v{{ config.extra.versions.current }}</span>
-                    {% for v in config.extra.versions.list %}
-                    {% if v.version != config.extra.versions.current %}
-                    <a href="{{ v.url | safe }}" class="sidebar__version-link">v{{ v.version }}</a>
+                    {% if is_dev %}
+                    <span class="sidebar__version-current">dev</span>
+                    <a href="{{ config.extra.stable_url | safe }}" class="sidebar__version-link">v{{ config.extra.stable_version }}</a>
+                    {% else %}
+                    <span class="sidebar__version-current">v{{ config.extra.stable_version }}</span>
+                    <a href="{{ config.extra.dev_url | safe }}" class="sidebar__version-link">dev</a>
                     {% endif %}
-                    {% endfor %}
                 </div>
             </div>
             {% endif %}

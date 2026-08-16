@@ -313,6 +313,16 @@
 
             {% block nav_buttons %}{% endblock %}
 
+            {% if config.extra.channel | default(value="stable") == "dev" %}
+            <div class="dev-banner-frame">
+                <aside class="dev-banner{% if not page %} dev-banner--home{% endif %}" role="status">
+                    <strong>Development documentation</strong>
+                    This version follows <a href="https://github.com/oximo-rs/oximo" target="_blank" rel="noopener noreferrer"><code>main</code></a> and may describe unreleased changes.
+                    <a href="{{ config.extra.stable_url | safe }}">View stable v{{ config.extra.stable_version }}</a>
+                </aside>
+            </div>
+            {% endif %}
+
             <div class="layout__content-area">
                 <main id="main-content" class="main-content" role="main" aria-label="Main content">
                     {% block content %}{% endblock %}
