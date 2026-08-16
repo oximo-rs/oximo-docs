@@ -2,12 +2,13 @@
   'use strict';
 
   const STORAGE_KEY = 'oximo-theme';
-  const THEMES = ['light', 'dark'];
+  const THEMES = ['auto', 'light', 'dark'];
 
   // Get stored theme or default to auto
   function getStoredTheme() {
     try {
-      return localStorage.getItem(STORAGE_KEY) || 'auto';
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return THEMES.includes(stored) ? stored : 'auto';
     } catch (e) {
       return 'auto';
     }
