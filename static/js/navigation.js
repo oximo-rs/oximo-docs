@@ -575,7 +575,6 @@
   function initScrollProgress() {
     const progressContainer = document.querySelector('.scroll-progress');
     const progressBar = document.querySelector('.scroll-progress__bar');
-    const progressPercent = document.querySelector('.scroll-progress__percent');
     const header = document.querySelector('.header');
     const sidebar = document.querySelector('.sidebar');
 
@@ -607,10 +606,6 @@
       // Avoid division by zero for short pages
       if (docHeight <= 0) {
         progressBar.style.width = '100%';
-        if (progressPercent) {
-          progressPercent.textContent = '100%';
-          progressPercent.style.left = '100%';
-        }
         return;
       }
 
@@ -619,14 +614,6 @@
       // Update bar width
       progressBar.style.width = `${scrollPercent}%`;
 
-      // Update percentage text and position it at the end of the bar
-      if (progressPercent) {
-        progressPercent.textContent = `${scrollPercent}%`;
-        progressPercent.style.left = `${scrollPercent}%`;
-      }
-
-      // Toggle active class for showing percentage (only after some scroll)
-      progressContainer.classList.toggle('scroll-progress--active', scrollTop > 50);
     }
 
     // Throttled scroll handler for performance

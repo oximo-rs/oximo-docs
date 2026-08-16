@@ -1191,29 +1191,3 @@ html.page-toc-open-init .page-toc-panel {
   background: var(--color-accent);
   transition: width 0.1s ease-out;
 }
-
-.scroll-progress__percent {
-  position: absolute;
-  left: 0;
-  top: 100%;
-  margin-top: 0.35rem;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: var(--font-medium);
-  color: var(--color-text-muted);
-  background: transparent;
-  padding: 0;
-  min-width: 2rem;
-  text-align: left;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease, left 0.1s ease-out;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-
-  // Show when scrolled past threshold
-  .scroll-progress--active & {
-    opacity: 1;
-    visibility: visible;
-  }
-}
