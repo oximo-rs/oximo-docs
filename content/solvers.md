@@ -68,55 +68,6 @@ Footnotes:
 
 A backend rejects model kinds it can't handle, so check [`Model::kind()`][Model] if a solve returns [`SolverError::UnsupportedKind`][SolverError].
 
-## External solver setup
-
-Gurobi, MOSEK, BARON, and GAMS need software installed outside Cargo. Add the
-corresponding feature only after that software is installed and licensed.
-
-### Gurobi
-
-Enable `gurobi`, set `GUROBI_HOME` to the Gurobi installation, and make sure a
-Gurobi license is active. The backend links through the
-[`grb`](https://crates.io/crates/grb) crate.
-
-```toml
-[dependencies]
-oximo = { version = "0.5", features = ["gurobi"] }
-```
-
-### MOSEK
-
-Enable `mosek`, install MOSEK 11.2, and configure a valid license. Set
-`MOSEK_BINDIR_112` to MOSEK's platform `bin` directory when the installation is
-not in its default location. The backend links through the
-[`mosek`](https://crates.io/crates/mosek) crate.
-
-> Note for Windows: the current `mosek` crate build script emits an unquoted
-> linker flag, so setting `MOSEK_BINDIR_112` directly to a path containing
-> spaces can fail. Create a junction with a space-free path, then point the
-> environment variable at that junction. See [mosek.rust#1](https://github.com/MOSEK/mosek.rust/issues/1).
-
-> Note: We currently support only MOSEK 11.2.
-> Support for other versions of MOSEK is planned.
-
-```toml
-[dependencies]
-oximo = { version = "0.5", features = ["mosek"] }
-```
-
-### BARON and GAMS
-
-Enable `baron` or `gams` after placing the respective executable on `PATH`.
-Both backends exchange files with an external program rather than linking the
-solver into your process.
-
-```toml
-[dependencies]
-oximo = { version = "0.5", features = ["baron"] }
-```
-
-Use `features = ["gams"]` instead for GAMS.
-
 ## HiGHS
 
 [`Highs`][Highs] is bundled by default via the `highs` Cargo feature. No external install required, but a C/C++ compiler is needed at build time.
@@ -172,9 +123,16 @@ For any nonlinear model, enabling `pounce-enzyme` is **highly recommended**. Exa
 
 ## Gurobi
 
-[`Gurobi`][Gurobi] requires the `gurobi` Cargo feature plus a licensed Gurobi installation reachable via `GUROBI_HOME`.
+[`Gurobi`][Gurobi] requires the `gurobi` Cargo feature, the [`grb`](https://crates.io/crates/grb)
+crate, and a licensed Gurobi installation. Set `GUROBI_HOME` to the installation
+directory before building and make sure a Gurobi license is active.
 
 > Note: Only Gurobi v12 and later are supported.
+
+```toml
+[dependencies]
+oximo = { version = "0.5", features = ["gurobi"] }
+```
 
 ```rust
 use oximo::prelude::*;
@@ -201,7 +159,20 @@ Common [`GurobiOptions`][GurobiOptions]:
 `Mosek` supports LP, MILP, convex QP/MIQP, convex QCP/MIQCP, and
 SOCP/MISOCP models. It requires the `mosek` Cargo feature, a licensed MOSEK
 11.2 installation, and `MOSEK_BINDIR_112` when MOSEK is outside its default
-location. MOSEK validates the convexity of quadratic data.
+location. MOSEK validates the convexity of quadratic data. The backend links
+through the [`mosek`](https://crates.io/crates/mosek) crate.
+
+On Windows, setting `MOSEK_BINDIR_112` directly to a path containing spaces can
+fail because of an unquoted linker flag in the current `mosek` crate build
+script. Create a junction with a space-free path and point the environment
+variable at that junction; see [mosek.rust#1](https://github.com/MOSEK/mosek.rust/issues/1).
+
+Only MOSEK 11.2 is currently supported.
+
+```toml
+[dependencies]
+oximo = { version = "0.5", features = ["mosek"] }
+```
 
 ```rust
 use oximo::prelude::*;
@@ -220,7 +191,16 @@ MOSEK-specific parameter builders are then applied in call order.
 
 ## BARON
 
-[`Baron`][Baron] is a global solver for nonconvex LP/MILP/QP/MIQP/NLP/MINLP. Requires the `baron` feature and a licensed BARON install on `PATH`.
+[`Baron`][Baron] is a global solver for LP/MILP/QP/MIQP/QCP/MIQCP/SOCP/MISOCP/
+NLP/MINLP models. The Oximo adapter supports all of these model kinds and
+translates explicit second-order cones to BARON's quadratic constraint
+representation. It requires the `baron` feature, a licensed BARON installation
+on `PATH`, and exchanges model and result files with the external executable.
+
+```toml
+[dependencies]
+oximo = { version = "0.5", features = ["baron"] }
+```
 
 ```rust
 use oximo::prelude::*;
@@ -231,7 +211,15 @@ let result = Baron::new().solve(&m, &BaronOptions::default())?;
 
 ## GAMS
 
-[`Gams`][Gams] requires the `gams` Cargo feature plus a GAMS install on `PATH`. Useful when you want to route a model through GAMS-managed solvers (CPLEX, BARON, IPOPT, KNITRO, ...).
+[`Gams`][Gams] requires the `gams` Cargo feature plus a GAMS installation on
+`PATH`. It exchanges model and result files with GAMS, which is useful when you
+want to route a model through GAMS-managed solvers (CPLEX, BARON, IPOPT,
+KNITRO, ...).
+
+```toml
+[dependencies]
+oximo = { version = "0.5", features = ["gams"] }
+```
 
 ```rust
 use oximo::prelude::*;

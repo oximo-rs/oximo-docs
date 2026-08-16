@@ -39,8 +39,8 @@ installation is ready.
 
 If you need another backend, you can use the provided features flags.
 
-The [Solvers][Solvers] guide compares model-kind support, shows the different
-requirements of each backend, and covers [external solver setup](/solvers/#external-solver-setup).
+The [Solvers][Solvers] guide compares model-kind support and summarizes the
+installation requirements of each backend.
 It is the best place to choose an engine when you are unsure.
 
 For example, to add the Clarabel backend:
