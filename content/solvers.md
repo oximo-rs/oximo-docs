@@ -121,6 +121,9 @@ Purely linear/quadratic models solve with exact analytic derivatives. Models con
 
 For any nonlinear model, enabling `pounce-enzyme` is **highly recommended**. Exact derivatives are faster and far more accurate than the finite-difference fallback, which improves both convergence and robustness. It requires a nightly toolchain and a fat-LTO build (see [Installation > Advanced: exact nonlinear derivatives](/installation/#advanced-exact-nonlinear-derivatives)).
 
+> Note: `pounce-enzyme` currently requires the `nightly-2026-07-26` toolchain.
+> Later nightly toolchains fail. See [rust-lang/rust#160470](https://github.com/rust-lang/rust/issues/160470).
+
 ## Gurobi
 
 [`Gurobi`][Gurobi] requires the `gurobi` Cargo feature, the [`grb`](https://crates.io/crates/grb)

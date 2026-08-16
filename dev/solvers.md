@@ -128,6 +128,9 @@ let result = Pounce.solve(&m, &PounceOptions::default())?;
   and sparse Lagrangian Hessians for nonlinear models. See [Installation > Advanced:
   exact nonlinear derivatives](/installation/#advanced-exact-nonlinear-derivatives).
 
+> Note: `pounce-enzyme` currently requires the `nightly-2026-07-26` toolchain.
+> Later nightly toolchains fail. See [rust-lang/rust#160470](https://github.com/rust-lang/rust/issues/160470).
+
 ### Automatic routing
 
 `PounceSolverSelection::Auto` is the default. It certifies convexity before
