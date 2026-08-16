@@ -169,15 +169,50 @@
 
 <script>
 (function(){
+    function fallbackCopy(text) {
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        var copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+        document.body.removeChild(textarea);
+        return copied;
+    }
+
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text)
+                .then(function(){ return true; })
+                .catch(function(){ return fallbackCopy(text); });
+        }
+        return Promise.resolve(fallbackCopy(text));
+    }
+
     document.querySelectorAll('[data-copy]').forEach(function(btn){
         btn.addEventListener('click', function(){
             var text = btn.getAttribute('data-copy');
-            navigator.clipboard.writeText(text).then(function(){
+            var label = btn.querySelector('.docs-home__install-copy-label');
+            var prev = label ? label.textContent : null;
+            copyText(text).then(function(copied){
+                if (!copied) {
+                    if (label) label.textContent = 'Copy failed';
+                    window.setTimeout(function(){
+                        if (label && prev !== null) label.textContent = prev;
+                    }, 1600);
+                    return;
+                }
                 btn.classList.add('is-copied');
-                var label = btn.querySelector('.docs-home__install-copy-label');
-                var prev = label ? label.textContent : null;
                 if (label) label.textContent = 'Copied';
-                setTimeout(function(){
+                window.setTimeout(function(){
                     btn.classList.remove('is-copied');
                     if (label && prev !== null) label.textContent = prev;
                 }, 1600);

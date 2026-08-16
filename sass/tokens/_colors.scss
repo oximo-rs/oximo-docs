@@ -125,6 +125,8 @@ $ctp-latte: (
 
   // Accents
   --color-accent: var(--ctp-mauve);
+  --color-accent-cta: var(--color-accent);
+  --color-on-accent: #141311;
   --color-accent-hover: var(--ctp-pink);
   --color-link: var(--ctp-blue);
   --color-link-hover: var(--ctp-sapphire);
@@ -173,6 +175,8 @@ $ctp-latte: (
   --color-border: #{$surface};
   --color-border-muted: #{$surface-alt};
   --color-accent: #{$accent};
+  --color-accent-cta: #{$accent};
+  --color-on-accent: #141311;
   --color-accent-hover: #{$accent};
   --color-link: #{$accent};
   --color-link-hover: #{$accent};
@@ -218,4 +222,5 @@ $ctp-latte: (
     $surface: #f0eeee,
     $surface-alt: #e6e3e3
   );
+  --color-accent-cta: #ef7a4d;
 }

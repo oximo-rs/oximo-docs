@@ -50,13 +50,13 @@
 
 // Primary button
 .btn--primary {
-  background: var(--color-accent);
-  color: var(--ctp-base);
+  background: var(--color-accent-cta);
+  color: var(--color-on-accent);
   box-shadow: 0 4px 14px rgba(203, 166, 247, 0.3);
 
   &:hover {
-    background: var(--color-accent-hover);
-    color: var(--ctp-base);
+    background: var(--color-accent-cta);
+    color: var(--color-on-accent);
     box-shadow: 0 6px 20px rgba(203, 166, 247, 0.4);
   }
 }
