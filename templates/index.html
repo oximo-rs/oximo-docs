@@ -2,6 +2,10 @@
 
 {% block title %}{{ config.title }}: Rust Algebraic Modeling Library{% endblock %}
 
+{% block head %}
+{% include "partials/math-head.html" %}
+{% endblock %}
+
 {% block content %}
 <div class="home-grid home-grid--left" aria-hidden="true"></div>
 <div class="home-grid home-grid--right" aria-hidden="true"></div>
@@ -190,10 +194,17 @@
     var mq = window.matchMedia('(min-width: 1340px)');
 
     function build(){
-        panels.forEach(function(p){
+        var sizes = Array.prototype.map.call(panels, function(p){
+            if(!mq.matches) return null;
+            return { panel: p, width: p.clientWidth, height: p.clientHeight };
+        });
+        sizes.forEach(function(size){
+            var p = size && size.panel;
+            if(!p) {
+                return;
+            }
             p.textContent = '';
-            if(!mq.matches) return;
-            var w = p.clientWidth, h = p.clientHeight;
+            var w = size.width, h = size.height;
             if(w < 40 || h < 40) return;
             var cols = Math.max(1, Math.round(w / CELL));
             var rows = Math.max(1, Math.round(h / CELL));
@@ -217,4 +228,8 @@
     if(mq.addEventListener) mq.addEventListener('change', build);
 })();
 </script>
+{% endblock %}
+
+{% block scripts %}
+{% include "partials/math-scripts.html" %}
 {% endblock %}

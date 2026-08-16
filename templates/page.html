@@ -4,6 +4,12 @@
 
 {% block body_class %}page-{{ page.slug }}{% endblock %}
 
+{% block head %}
+{% if page.extra.math | default(value=false) %}
+{% include "partials/math-head.html" %}
+{% endif %}
+{% endblock %}
+
 {% set mode = config.extra.mode | default(value="site") %}
 
 {% block sidebar %}
@@ -54,4 +60,10 @@
     </a>
     {% endif %}
 </nav>
+{% endblock %}
+
+{% block scripts %}
+{% if page.extra.math | default(value=false) %}
+{% include "partials/math-scripts.html" %}
+{% endif %}
 {% endblock %}

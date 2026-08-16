@@ -2,6 +2,9 @@
 title = "Modeling"
 description = "Variables, index sets, expressions, and constraints in oximo."
 weight = 3
+
+[extra]
+math = true
 +++
 
 oximo's modeling layer lets you describe an optimization problem with idiomatic Rust.

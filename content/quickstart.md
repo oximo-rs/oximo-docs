@@ -2,6 +2,9 @@
 title = "Quickstart"
 description = "Build and solve your first LP with oximo in under a minute."
 weight = 2
+
+[extra]
+math = true
 +++
 
 This walkthrough builds a small linear program end-to-end: variables, constraints, objective, solve, read result. By the end you'll have run [`Highs`][Highs] on a real model and inspected the solution.
