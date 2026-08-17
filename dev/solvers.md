@@ -171,11 +171,12 @@ or persistent handle.
 
 ## Gurobi
 
-[`Gurobi`][Gurobi] requires the `gurobi` Cargo feature, the [`grb`](https://crates.io/crates/grb)
-crate, and a licensed Gurobi installation. Set `GUROBI_HOME` to the installation
-directory before building and make sure a Gurobi license is active.
+[`Gurobi`][Gurobi] uses [`gurobi-rs`](https://crates.io/crates/gurobi-rs) when the
+`gurobi` Cargo feature is enabled. It requires a licensed Gurobi installation.
+Set `GUROBI_HOME` to the installation directory before building and make sure a
+Gurobi license is active.
 
-> Note: Only Gurobi v12 and later are supported.
+> Note: Only Gurobi v13 and later are supported.
 
 ```toml
 [dependencies]
