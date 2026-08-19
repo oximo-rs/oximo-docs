@@ -4,7 +4,7 @@ description = "Export and import oximo models with MPS, LP or NL files."
 weight = 7
 +++
 
-The [`oximo-io`][oximo_io] crate writes [`Model`][Model]s to the standard text formats **MPS**, **LP**, and **NL**, and can read LP and NL files back into a [`Model`][Model]. All I/O is gated on the `io` Cargo feature, which is on by default.
+The [`oximo-io`][oximo_io] crate writes [`Model`][Model]s to the standard text formats **MPS**, **LP**, and **NL**, and can read all three formats back into a [`Model`][Model]. All I/O is gated on the `io` Cargo feature, which is on by default.
 
 Use this when you want to:
 
@@ -66,6 +66,40 @@ write_nl_with(&m, "model.nl", &opts)?;
 
 All writers preserve the [`Variable`][Variable] and constraint names from your model, so exported files cross-reference cleanly with [`SolverResult`][SolverResult] lookups such as `dual_of` and `reduced_costs` (see [Results](/results/)).
 
+## Reading MPS models
+
+Use [read_mps_file][read_mps_file] for a path or [read_mps][read_mps] for any
+text stream:
+
+```rust
+use oximo::io::{read_mps, read_mps_file};
+use std::fs::File;
+
+let model = read_mps_file("model.mps")?;
+let model_from_stream = read_mps(File::open("model.mps")?)?;
+```
+
+The reader accepts the standard linear sections, range rows, integer markers,
+binary and semi-variable bounds, and the `QUADOBJ`, `QMATRIX`, `QCMATRIX`, and
+`QSECTION` quadratic extensions. MPS does not identify the coefficient scaling
+used by quadratic constraints, so the default is the Gurobi convention. Select
+CPLEX or MOSEK scaling explicitly when needed:
+
+```rust
+use oximo::io::{
+    MpsQuadraticFormat, MpsReadOptions, read_mps_file_with,
+};
+
+let options = MpsReadOptions {
+    quadratic_format: MpsQuadraticFormat::Cplex,
+};
+let model = read_mps_file_with("cplex-model.mps", &options)?;
+```
+
+Malformed input returns [IoError::InvalidMps][IoError]. Multiple alternative
+RHS, range, or bounds vectors and semantics not represented by oximo-core, such
+as SOS and indicator constraints, return [IoError::UnsupportedMps][IoError].
+
 ## Reading NL models
 
 The NL reader imports models produced by oximo or compatible
@@ -89,7 +123,7 @@ The reader rejects malformed input with [IoError::InvalidNl][IoError] and
 well-formed NL sections that the core model cannot represent with
 [IoError::UnsupportedNl][IoError]. Imported functions, defined variables,
 logical/network constraints, complementarity sections, and unsupported expression
-opcodes are intentionally rejected. MPS remains export-only.
+opcodes are intentionally rejected.
 
 ## Reading LP models
 
@@ -130,6 +164,9 @@ oximo = { version = "0.5", default-features = false, features = ["highs"] }
 [write_nl_files]: https://docs.rs/oximo-io/latest/oximo_io/nl/fn.write_nl_files.html
 [read_nl]: https://docs.rs/oximo-io/latest/oximo_io/nl/fn.read_nl.html
 [read_nl_file]: https://docs.rs/oximo-io/latest/oximo_io/nl/fn.read_nl_file.html
+[read_mps]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_mps.html
+[read_mps_file]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_mps_file.html
+[read_mps_file_with]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_mps_file_with.html
 [read_lp]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_lp.html
 [read_lp_file]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_lp_file.html
 [IoError]: https://docs.rs/oximo-io/latest/oximo_io/enum.IoError.html
