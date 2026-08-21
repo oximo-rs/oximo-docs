@@ -70,7 +70,9 @@ A backend rejects model kinds it can't handle, so check [`Model::kind()`][Model]
 
 ## HiGHS
 
-[`Highs`][Highs] is bundled by default via the `highs` Cargo feature. No external install required, but a C/C++ compiler is needed at build time.
+[`Highs`][Highs] is enabled with the `highs` Cargo feature. No external solver
+install is required, but a C/C++ compiler is needed at build time. Add it with
+`cargo add oximo --features highs`.
 
 ```rust
 use oximo::prelude::*;
