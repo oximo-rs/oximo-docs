@@ -256,7 +256,7 @@
     {% endif %}
 
     {# ===== Stylesheets ===== #}
-    <link rel="stylesheet" href="{{ get_url(path='style.css') | safe }}">
+    <link rel="stylesheet" href="{{ get_url(path='style.css', cachebust=true) | safe }}">
 
     {# Syntax highlighting #}
     {% if config.markdown.highlighting.style == "class" %}
@@ -332,18 +332,18 @@
             {% set channel = config.extra.channel | default(value="stable") %}
             {% set current_version = config.extra.versions.current | default(value=config.extra.stable_version) %}
             {% if channel == "dev" %}
-            <div class="dev-banner-frame">
+            <div class="dev-banner-frame{% if not page %} dev-banner-frame--home{% endif %}">
                 <aside class="dev-banner{% if not page %} dev-banner--home{% endif %}" role="status">
                     <strong>Development documentation for {{ config.extra.dev_label }}</strong>
-                    This version follows <a href="https://github.com/oximo-rs/oximo" target="_blank" rel="noopener noreferrer"><code>main</code></a> and may describe unreleased changes.
+                    <span>This version follows <a href="https://github.com/oximo-rs/oximo" target="_blank" rel="noopener noreferrer"><code>main</code></a> and may describe unreleased changes.</span>
                     <a href="{{ config.extra.stable_url | safe }}">View stable v{{ config.extra.stable_version }}</a>
                 </aside>
             </div>
             {% elif channel == "archive" %}
-            <div class="dev-banner-frame">
+            <div class="dev-banner-frame{% if not page %} dev-banner-frame--home{% endif %}">
                 <aside class="dev-banner{% if not page %} dev-banner--home{% endif %}" role="status">
                     <strong>Previous version documentation: v{{ current_version }}</strong>
-                    You are viewing documentation for an older release.
+                    <span>You are viewing documentation for an older release.</span>
                     <a href="{{ config.extra.stable_url | safe }}">View latest stable v{{ config.extra.stable_version }}</a>
                 </aside>
             </div>

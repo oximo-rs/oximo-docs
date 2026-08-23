@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex">
     <title>{{ config.title }} - Print Version</title>
 
-    <link rel="stylesheet" href="{{ get_url(path='style.css') | safe }}">
-    <link rel="stylesheet" href="{{ get_url(path='docs.css') | safe }}">
+    <link rel="stylesheet" href="{{ get_url(path='style.css', cachebust=true) | safe }}">
+    <link rel="stylesheet" href="{{ get_url(path='docs.css', cachebust=true) | safe }}">
 
     <style>
         /* Print-specific overrides */

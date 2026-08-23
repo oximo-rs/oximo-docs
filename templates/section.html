@@ -3,7 +3,7 @@
 {% block title %}{{ section.title }} | {{ config.title }}{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="{{ get_url(path='docs.css') | safe }}">
+<link rel="stylesheet" href="{{ get_url(path='docs.css', cachebust=true) | safe }}">
 {% endblock %}
 
 {% set mode = config.extra.mode | default(value="site") %}
