@@ -29,7 +29,7 @@ active design, and **Considering** is an idea we like but have not committed to.
 
 ## I/O
 
-- [ ] **Model readers.** oximo writes MPS, LP, and NL today (see [I/O](../io/)).
+- [x] **Model readers.** oximo writes MPS, LP, and NL today (see [I/O](../io/)).
   Add parsers so those formats can be read back into a [`Model`][Model], which
   enables round-tripping and importing models built elsewhere [oximo#42](https://github.com/oximo-rs/oximo/issues/42). _(Exploring)_
 
