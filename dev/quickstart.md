@@ -68,8 +68,8 @@ For a C-free continuous LP/QP/SOCP path, enable Clarabel instead:
 cargo add oximo --features clarabel
 ```
 
-See [Modeling](/modeling/) for indexed variables and nonlinear expressions,
-[Solvers](/solvers/) for backend capabilities, and [Results](/results/) for
+See [Modeling](../modeling/) for indexed variables and nonlinear expressions,
+[Solvers](../solvers/) for backend capabilities, and [Results](../results/) for
 status, values, duals, and reduced costs.
 
 [Solver]: https://docs.rs/oximo/latest/oximo/prelude/trait.Solver.html

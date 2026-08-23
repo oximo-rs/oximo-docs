@@ -4,8 +4,9 @@ description = "Add oximo to a Rust project and configure an optional solver back
 weight = 1
 +++
 
-For most projects, installation is one command. The default `oximo` build
-provides the modeling layer and file I/O. Solver backends are opt-in.
+For most projects, installation is one command. oximo includes the [`Highs`][Highs]
+solver by default, so you can build and solve linear, mixed-integer linear, and
+quadratic models without installing a solver or obtaining a license.
 
 > This site is a guide for tutorials and worked examples. For the complete API
 > reference, see [docs.rs/oximo](https://docs.rs/oximo).
@@ -23,68 +24,75 @@ cd my-oximo-model
 cargo add oximo
 ```
 
-This default dependency is enough to construct models and use the MPS, LP, and
-NL I/O APIs. Choose a solver feature before solving a model.
+That is enough to use [`Highs`][Highs] and write models to MPS, LP, or NL files.
+The bundled HiGHS build needs a C compiler:
 
-### HiGHS
+- On Windows, install the MSVC C++ build tools,
+- on macOS, run `xcode-select --install`,
+- on Linux, install your distribution's standard C/C++ build tools.
 
-HiGHS is a bundled LP/MILP/QP solver. Enable it by doing:
+Next, follow the [Quickstart](../quickstart/) to create and solve your first
+model. If the project builds and the Quickstart prints an objective value, your
+installation is ready.
 
-```bash
-cargo add oximo --features highs
-```
+## Choose another backend
 
-The HiGHS build requires a C/C++ compiler:
-
-- On Windows, install the MSVC C++ build tools.
-- On macOS, run `xcode-select --install`.
-- On Linux, install your distribution's standard C/C++ build tools.
-
-Then follow the [Quickstart](../quickstart/) to solve the example model.
-
-### Clarabel
-
-Clarabel is a pure-Rust solver for continuous LP, QP, and SOCP models:
-
-```bash
-cargo add oximo --features clarabel
-```
-
-Use this path when you want a solver without a C compiler or external solver
-installation. Clarabel does not solve mixed-integer models.
-
-## Other backends
+If you need another backend, you can use the provided features flags.
 
 The [Solvers][Solvers] guide compares model-kind support and summarizes the
-installation requirements of every backend. Enable a backend with its feature,
-for example:
+installation requirements of each backend.
+It is the best place to choose an engine when you are unsure.
+
+For example, to add the Clarabel backend:
+
+```bash
+cargo add oximo --features clarabel --no-default-features
+```
+
+Or, in `Cargo.toml`:
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["pounce"] }
+oximo = { version = "0.5", features = ["clarabel"], default-features = false }
 ```
 
-With no solver feature, you can still construct models and export them through
-the default `io` feature.
+## Minimal builds
+
+The default `highs` and `io` features are convenient for most users. If you want
+to avoid compiling bundled HiGHS, turn them off explicitly and select the backend you want:
+
+```toml
+[dependencies]
+oximo = { version = "0.5", default-features = false, features = ["clarabel"] }
+```
+
+With no solver feature, you can still construct models. You will need a solver
+feature before solving them.
 
 ## Advanced: exact nonlinear derivatives
 
 `pounce` uses finite-difference derivatives for nonlinear expressions by
 default. The nightly-only `pounce-enzyme` feature provides exact gradients,
-Jacobians, and Hessians through [Enzyme](https://enzyme.mit.edu/).
+Jacobians, and Hessians through [Enzyme](https://enzyme.mit.edu/). Use it for
+nonlinear POUNCE models when your toolchain can support it. **It is highly
+recommended to use it.**
 
 It requires a nightly Rust toolchain with the `enzyme` component,
-`RUSTFLAGS="-Zautodiff=Enable"`, and a fat-LTO profile:
+`RUSTFLAGS="-Zautodiff=Enable"`, and a fat-LTO profile. The oximo workspace
+provides an `enzyme` profile:
 
 ```bash
 RUSTFLAGS="-Zautodiff=Enable" cargo +nightly build --profile enzyme --features pounce-enzyme
 ```
 
+See the [Enzyme installation instructions](https://rustc-dev-guide.rust-lang.org/autodiff/installation.html)
+for configuring the toolchain.
+
 ## Feature reference
 
 | Feature         | Included by default | Purpose                                                              |
 | --------------- | :-----------------: | -------------------------------------------------------------------- |
-| `highs`         |         no          | Bundled [`Highs`][Highs] solver for LP, MILP, and QP.                |
+| `highs`         |         yes         | Bundled [`Highs`][Highs] solver for LP, MILP, and QP.                |
 | `io`            |         yes         | MPS, LP, and NL file writers.                                        |
 | `baron`         |         no          | [`Baron`][Baron] global-optimization backend.                        |
 | `clarabel`      |         no          | Pure-Rust [`Clarabel`][Clarabel] solver for LP, QP, and SOCP.        |

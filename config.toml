@@ -16,7 +16,8 @@ dark_theme = "one-dark-pro"
 [extra]
 mode = "docs"
 channel = "stable"
-stable_version = "0.5.1"
+dev_label = "main"
+stable_version = "0.6.0"
 stable_url = "/"
 dev_url = "/dev/"
 github = "https://github.com/oximo-rs/oximo"
@@ -37,7 +38,8 @@ logo_width = 281
 logo_height = 273
 
 [extra.versions]
-current = "0.5.1"
+current = "0.6.0"
 list = [
-    { version = "0.5.1", url = "/", label = "latest" },
+    { version = "0.6.0", url = "/", label = "latest" },
+    { version = "0.5.1", url = "/v0.5.1/" },
 ]

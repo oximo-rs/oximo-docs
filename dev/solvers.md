@@ -128,7 +128,7 @@ let result = Pounce.solve(&m, &PounceOptions::default())?;
   limited-memory L-BFGS Hessian.
 - **pounce-enzyme feature:** nightly-only exact gradients, sparse Jacobians,
   and sparse Lagrangian Hessians for nonlinear models. See [Installation > Advanced:
-  exact nonlinear derivatives](/installation/#advanced-exact-nonlinear-derivatives).
+  exact nonlinear derivatives](../installation/#advanced-exact-nonlinear-derivatives).
 
 > Note: `pounce-enzyme` currently requires the `nightly-2026-07-26` toolchain.
 > Later nightly toolchains fail. See [rust-lang/rust#160470](https://github.com/rust-lang/rust/issues/160470).
@@ -182,7 +182,7 @@ Gurobi license is active.
 
 ```toml
 [dependencies]
-oximo = { version = "0.5", features = ["gurobi"] }
+oximo = { version = "0.6", features = ["gurobi"] }
 ```
 
 ```rust
@@ -222,7 +222,7 @@ Only MOSEK 11.2 is currently supported.
 
 ```toml
 [dependencies]
-oximo = { version = "0.5", features = ["mosek"] }
+oximo = { version = "0.6", features = ["mosek"] }
 ```
 
 ```rust
@@ -250,7 +250,7 @@ on `PATH`, and exchanges model and result files with the external executable.
 
 ```toml
 [dependencies]
-oximo = { version = "0.5", features = ["baron"] }
+oximo = { version = "0.6", features = ["baron"] }
 ```
 
 ```rust
@@ -269,7 +269,7 @@ KNITRO, ...).
 
 ```toml
 [dependencies]
-oximo = { version = "0.5", features = ["gams"] }
+oximo = { version = "0.6", features = ["gams"] }
 ```
 
 ```rust
@@ -283,9 +283,9 @@ See [`GamsOptions`][GamsOptions] and the per-solver option structs in [`oximo::g
 
 ## Next steps
 
-- [Results](/results/): inspect solver status, values, duals, and solution pools
-- [Printing & Debugging](/debugging/): print a model as algebra and track down what it actually says
-- [I/O](/io/): write your model to MPS, LP or NL for use with external tools
+- [Results](../results/): inspect solver status, values, duals, and solution pools
+- [Printing & Debugging](../debugging/): print a model as algebra and track down what it actually says
+- [I/O](../io/): write your model to MPS, LP or NL for use with external tools
 
 [Solver]: https://docs.rs/oximo/latest/oximo/prelude/trait.Solver.html
 [SolverResult]: https://docs.rs/oximo/latest/oximo/prelude/struct.SolverResult.html

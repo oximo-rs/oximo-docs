@@ -329,12 +329,22 @@
 
             {% block nav_buttons %}{% endblock %}
 
-            {% if config.extra.channel | default(value="stable") == "dev" %}
+            {% set channel = config.extra.channel | default(value="stable") %}
+            {% set current_version = config.extra.versions.current | default(value=config.extra.stable_version) %}
+            {% if channel == "dev" %}
             <div class="dev-banner-frame">
                 <aside class="dev-banner{% if not page %} dev-banner--home{% endif %}" role="status">
-                    <strong>Development documentation</strong>
+                    <strong>Development documentation for {{ config.extra.dev_label }}</strong>
                     This version follows <a href="https://github.com/oximo-rs/oximo" target="_blank" rel="noopener noreferrer"><code>main</code></a> and may describe unreleased changes.
                     <a href="{{ config.extra.stable_url | safe }}">View stable v{{ config.extra.stable_version }}</a>
+                </aside>
+            </div>
+            {% elif channel == "archive" %}
+            <div class="dev-banner-frame">
+                <aside class="dev-banner{% if not page %} dev-banner--home{% endif %}" role="status">
+                    <strong>Previous version documentation: v{{ current_version }}</strong>
+                    You are viewing documentation for an older release.
+                    <a href="{{ config.extra.stable_url | safe }}">View latest stable v{{ config.extra.stable_version }}</a>
                 </aside>
             </div>
             {% endif %}

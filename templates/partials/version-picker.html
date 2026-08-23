@@ -1,15 +1,17 @@
 {# Version Picker Dropdown (docs mode only) #}
 {% set is_dev = config.extra.channel | default(value="stable") == "dev" %}
-{% set current_version = config.extra.versions.current | default(value="latest") %}
+{% set current_version = config.extra.versions.current | default(value=config.extra.stable_version) %}
 
 <div class="version-picker">
     <button class="version-picker__button" aria-haspopup="menu" aria-expanded="false" aria-label="Select documentation version">
         {% if is_dev %}
-        <span>dev</span>
-        <span class="version-picker__badge">unreleased</span>
+        <span>{{ config.extra.dev_label }}</span>
+        <span class="version-picker__badge">dev</span>
         {% else %}
         <span>v{{ current_version }}</span>
+        {% if current_version == config.extra.stable_version %}
         <span class="version-picker__badge">latest</span>
+        {% endif %}
         {% endif %}
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m6 9 6 6 6-6"/>
@@ -18,12 +20,20 @@
 
     <div class="version-picker__dropdown" role="menu" aria-label="Documentation versions">
         <a href="{{ config.extra.dev_url | safe }}" class="version-picker__item {% if is_dev %}active{% endif %}" role="menuitem"{% if is_dev %} aria-current="true"{% endif %}>
-            dev
-            <span class="version-picker__badge">unreleased</span>
+            {{ config.extra.dev_label }}
+            <span class="version-picker__badge">dev</span>
         </a>
-        <a href="{{ config.extra.stable_url | safe }}" class="version-picker__item {% if not is_dev %}active{% endif %}" role="menuitem"{% if not is_dev %} aria-current="true"{% endif %}>
+        <a href="{{ config.extra.stable_url | safe }}" class="version-picker__item {% if not is_dev and current_version == config.extra.stable_version %}active{% endif %}" role="menuitem"{% if not is_dev and current_version == config.extra.stable_version %} aria-current="true"{% endif %}>
             v{{ config.extra.stable_version }}
-            <span class="version-picker__badge">stable</span>
+            <span class="version-picker__badge">latest</span>
         </a>
+        {% for version in config.extra.versions.list %}
+        {% if version.version != config.extra.stable_version %}
+        <a href="{{ version.url | safe }}" class="version-picker__item {% if not is_dev and version.version == current_version %}active{% endif %}" role="menuitem"{% if not is_dev and version.version == current_version %} aria-current="true"{% endif %}>
+            v{{ version.version }}
+            {% if version.label is defined %}<span class="version-picker__badge">{{ version.label }}</span>{% endif %}
+        </a>
+        {% endif %}
+        {% endfor %}
     </div>
 </div>

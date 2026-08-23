@@ -40,7 +40,7 @@ The HiGHS build requires a C/C++ compiler:
 - On macOS, run `xcode-select --install`.
 - On Linux, install your distribution's standard C/C++ build tools.
 
-Then follow the [Quickstart](/quickstart/) to solve the example model.
+Then follow the [Quickstart](../quickstart/) to solve the example model.
 
 ### Clarabel
 
@@ -61,7 +61,7 @@ for example:
 
 ```toml
 [dependencies]
-oximo = { version = "0.5", features = ["pounce"] }
+oximo = { version = "0.6", features = ["pounce"] }
 ```
 
 With no solver feature, you can still construct models and export them through

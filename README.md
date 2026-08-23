@@ -16,6 +16,7 @@ Built with [Zola](https://www.getzola.org/), a static site generator. Live at
 | `sass/`       | Styles (compiled to CSS by Zola)                         |
 | `static/`     | Assets served as-is: JS, fonts, images, wasm             |
 | `dev/`        | Development-only page overrides, published under `/dev/` |
+| `versions/`   | Archived documentation sources for published versions   |
 | `config.toml` | Site config: base URL, markdown, `[extra]` theme options |
 
 ## Develop
@@ -29,22 +30,23 @@ zola check # validate links and markup
 ```
 
 Edit docs in `content/`. Edit layout/styling in `templates/` and `sass/`.
-The deployment-equivalent combined build is `bash ./build.sh`. It publishes both the stable
-root and the `/dev/` channel.
+The deployment-equivalent combined build is `bash ./build.sh`. It publishes the stable root,
+configured version archives, and the `/dev/` channel.
 
 `zola serve` serves only the stable content tree.
 
 ## Documentation channels
 
-The root site is the stable documentation channel. The combined Cloudflare build also
-publishes a development channel at [oximo.dev/dev](https://oximo.dev/dev/). The development
-build starts from the stable content and overlays files from `dev/`, so a page only needs to
-be copied into `dev/` when it diverges from the latest release.
+The root site is the latest stable documentation channel. The combined Cloudflare build also
+publishes archived release channels and a development channel at
+[oximo.dev/dev](https://oximo.dev/dev/). The development build starts from the stable content
+and overlays files from `dev/`, so a page only needs to be copied into `dev/` when it diverges
+from the latest release.
 
 To release a new stable version, promote the tested development files into `content/`, update
-`stable_version` and the version metadata in `config.toml`, and merge that promotion through
-the release branch. The build then continues to publish both stable `/` and development `/dev/`
-from one artifact.
+`stable_version`, `dev_label`, and `[extra.versions]` in `config.toml`, and merge that promotion
+through the release branch. The build then continues to publish stable `/`, configured `versions/`
+archives, and development `/dev/` from one artifact.
 
 ## Analytics
 

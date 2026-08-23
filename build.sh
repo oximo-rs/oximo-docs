@@ -26,6 +26,26 @@ main() {
     rm -rf "${ROOT_DIR}/public"
     "${ZOLA}" --root "${ROOT_DIR}" build
 
+    for version_dir in "${ROOT_DIR}"/versions/*; do
+        [[ -d "${version_dir}" ]] || continue
+        version_slug="$(basename "${version_dir}")"
+        version="${version_slug#v}"
+        archive_root="$(mktemp -d)"
+        mkdir -p "${archive_root}/content"
+        cp -a "${version_dir}/content/." "${archive_root}/content/"
+        cp "${ROOT_DIR}/config.toml" "${archive_root}/config.toml"
+        cp -a "${ROOT_DIR}/templates" "${ROOT_DIR}/sass" "${ROOT_DIR}/static" "${archive_root}/"
+
+        sed -i 's|^base_url = .*|base_url = "https://oximo.dev/'"${version_slug}"'/"|' "${archive_root}/config.toml"
+        sed -i 's|^channel = .*|channel = "archive"|' "${archive_root}/config.toml"
+        sed -i 's|^current = .*|current = "'"${version}"'"|' "${archive_root}/config.toml"
+
+        "${ZOLA}" --root "${archive_root}" build --base-url "https://oximo.dev/${version_slug}/"
+        mkdir -p "${ROOT_DIR}/public/${version_slug}"
+        cp -a "${archive_root}/public/." "${ROOT_DIR}/public/${version_slug}/"
+        rm -rf "${archive_root}"
+    done
+
     mkdir -p "${DEV_ROOT}/content"
     cp -a "${ROOT_DIR}/content/." "${DEV_ROOT}/content/"
     rm -f "${DEV_ROOT}/content/roadmap.md"

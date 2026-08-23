@@ -26,7 +26,7 @@ Each row is what [`Solver::supports`][Solver] accepts for that backend, against 
 | ---------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :----: | :---: | :---: |
 | [`Highs`][Highs]       | **✓** | **✓** | **✓** |   —   |   —   |   —   |   —   |   —    |   —   |   —   |
 | [`Clarabel`][Clarabel] | **✓** |   —   | **✓** |   —   |   —   |   —   | **✓** |   —    |   —   |   —   |
-| [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   | **✓** |   —    | **✓** |   —   |
+| [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   |   —   |   —    | **✓** |   —   |
 | [`Gurobi`][Gurobi]     | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
 | `Mosek`                | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —   |   —   |
 | [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
@@ -70,9 +70,7 @@ A backend rejects model kinds it can't handle, so check [`Model::kind()`][Model]
 
 ## HiGHS
 
-[`Highs`][Highs] is enabled with the `highs` Cargo feature. No external solver
-install is required, but a C/C++ compiler is needed at build time. Add it with
-`cargo add oximo --features highs`.
+[`Highs`][Highs] is bundled by default via the `highs` Cargo feature. No external install required, but a C/C++ compiler is needed at build time.
 
 ```rust
 use oximo::prelude::*;
@@ -110,79 +108,33 @@ let result = Clarabel.solve(&m, &ClarabelOptions::default())?;
 
 ## POUNCE
 
-[Pounce][Pounce] is a pure-Rust IPOPT and convex-solver backend. Enable the
-`pounce` feature:
+[`Pounce`][Pounce] is a pure-Rust port of IPOPT, covering continuous LP/QP/QCP/NLP. Enable the `pounce` feature.
 
 ```rust
 use oximo::prelude::*;
-use oximo::pounce::{Pounce, PounceOptions, PounceSolverSelection};
+use oximo::pounce::Pounce;
 
 let result = Pounce.solve(&m, &PounceOptions::default())?;
 ```
 
-### Derivatives
+Purely linear/quadratic models solve with exact analytic derivatives. Models containing a nonlinear function fall back to finite differences and an L-BFGS Hessian unless you enable the nightly-only `pounce-enzyme` feature, which supplies exact gradients plus sparse Jacobians and Hessians.
 
-- **Default stable path:** LP/QP/QCP models use exact analytic derivatives,
-  including Jacobian rows and the constant Lagrangian Hessian. Nonlinear models
-  use compiled tapes with finite-difference nonlinear derivatives and a
-  limited-memory L-BFGS Hessian.
-- **pounce-enzyme feature:** nightly-only exact gradients, sparse Jacobians,
-  and sparse Lagrangian Hessians for nonlinear models. See [Installation > Advanced:
-  exact nonlinear derivatives](../installation/#advanced-exact-nonlinear-derivatives).
+For any nonlinear model, enabling `pounce-enzyme` is **highly recommended**. Exact derivatives are faster and far more accurate than the finite-difference fallback, which improves both convergence and robustness. It requires a nightly toolchain and a fat-LTO build (see [Installation > Advanced: exact nonlinear derivatives](../installation/#advanced-exact-nonlinear-derivatives)).
 
 > Note: `pounce-enzyme` currently requires the `nightly-2026-07-26` toolchain.
 > Later nightly toolchains fail. See [rust-lang/rust#160470](https://github.com/rust-lang/rust/issues/160470).
 
-### Automatic routing
-
-`PounceSolverSelection::Auto` is the default. It certifies convexity before
-selecting a specialized engine:
-
-- LP and convex QP use the convex IPM.
-- SOCP with a convex objective uses the conic IPM, including explicit cones and
-  recognized quadratic SOC forms.
-- QCP, indefinite QP, and general NLP use the TNLP/builder path.
-- Inconclusive convexity checks fall back to NLP.
-
-A numerical failure in an automatically selected LP or detected-SOCP route gets
-one NLP attempt. The specialized convex engines currently have no
-time-limit hook, with a time limit, Auto uses NLP.
-
-### Options
-
-PounceOptions provides dedicated setters and typed builders for POUNCE's
-option reference:
-
-```rust
-use oximo::pounce::{MuStrategy, PounceOptions, PounceSolverSelection};
-
-let options = PounceOptions::default()
-    .tol(1e-8)
-    .mu_strategy(MuStrategy::Adaptive)
-    .solver_selection(PounceSolverSelection::Auto)
-    .presolve(true)
-    .linear_solver("feral");
-
-// Escape hatch for an option not exposed by a dedicated setter.
-let options = options.set("acceptable_tol", 1e-5);
-```
-
-The backend manages `print_level`, `max_cpu_time`, `warm_start_init_point`, and
-`hessian_approximation`. Configure those through the corresponding oximo options
-or persistent handle.
-
 ## Gurobi
 
-[`Gurobi`][Gurobi] uses [`gurobi-rs`](https://crates.io/crates/gurobi-rs) when the
-`gurobi` Cargo feature is enabled. It requires a licensed Gurobi installation.
-Set `GUROBI_HOME` to the installation directory before building and make sure a
-Gurobi license is active.
+[`Gurobi`][Gurobi] requires the `gurobi` Cargo feature, the [`grb`](https://crates.io/crates/grb)
+crate, and a licensed Gurobi installation. Set `GUROBI_HOME` to the installation
+directory before building and make sure a Gurobi license is active.
 
-> Note: Only Gurobi v13 and later are supported.
+> Note: Only Gurobi v12 and later are supported.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["gurobi"] }
+oximo = { version = "0.5", features = ["gurobi"] }
 ```
 
 ```rust
@@ -222,7 +174,7 @@ Only MOSEK 11.2 is currently supported.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["mosek"] }
+oximo = { version = "0.5", features = ["mosek"] }
 ```
 
 ```rust
@@ -250,7 +202,7 @@ on `PATH`, and exchanges model and result files with the external executable.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["baron"] }
+oximo = { version = "0.5", features = ["baron"] }
 ```
 
 ```rust
@@ -269,7 +221,7 @@ KNITRO, ...).
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["gams"] }
+oximo = { version = "0.5", features = ["gams"] }
 ```
 
 ```rust
