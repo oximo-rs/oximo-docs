@@ -6,9 +6,8 @@
 <link rel="stylesheet" href="{{ get_url(path='docs.css', cachebust=true) | safe }}">
 {% endblock %}
 
-{% set mode = config.extra.mode | default(value="site") %}
-
 {% block sidebar %}
+{% set mode = config.extra.mode | default(value="site") %}
 {% if mode == "docs" %}
 {% include "partials/sidebar.html" %}
 {% endif %}

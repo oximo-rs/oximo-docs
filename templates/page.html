@@ -11,9 +11,8 @@
 {% endif %}
 {% endblock %}
 
-{% set mode = config.extra.mode | default(value="site") %}
-
 {% block sidebar %}
+{% set mode = config.extra.mode | default(value="site") %}
 {% if mode == "docs" %}
 {% include "partials/sidebar.html" %}
 {% endif %}
@@ -38,7 +37,7 @@
     </div>
 
     {# Hidden metadata for structured data #}
-    {% if config.extra.author.name is defined and config.extra.author.name %}
+    {% if config.extra.author is defined and config.extra.author.name is defined and config.extra.author.name %}
     <meta itemprop="author" content="{{ config.extra.author.name }}">
     {% endif %}
     {% if page.updated is defined and page.updated %}

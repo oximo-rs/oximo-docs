@@ -34,7 +34,7 @@
         <a href="{{ config.extra.home_site.url | safe }}" class="header__home" aria-label="Go to {{ config.extra.home_site.name | default(value='home') }}" title="{{ config.extra.home_site.name | default(value='Home') }}">
             {% if config.extra.home_site.logo %}
             {% set home_logo_path = config.extra.home_site.logo %}
-            {% if not home_logo_path is containing("/") %}
+            {% if not home_logo_path is containing(pat="/") %}
                 {% set home_logo_path = "assets/" ~ home_logo_path %}
             {% endif %}
             <img src="{{ get_url(path=home_logo_path) | safe }}" alt="{{ config.extra.home_site.name | default(value='Home') }}" class="header__home-logo">

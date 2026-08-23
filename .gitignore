@@ -1,4 +1,5 @@
 public/
 zola
+.tools/
 static/processed_images/
 target/

@@ -217,7 +217,7 @@
         {% endfor %}
 
         <footer class="print-page__footer">
-            <p>&copy; {{ now() | date(format="%Y") }} {{ config.extra.author.name | default(value=config.title) }}</p>
+            <p>&copy; {{ now() | date(format="%Y") }}{% if config.extra.author is defined and config.extra.author.name is defined %} {{ config.extra.author.name }}{% else %} {{ config.title }}{% endif %}</p>
         </footer>
     </div>
 

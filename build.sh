@@ -2,7 +2,7 @@
 set -euo pipefail
 
 main() {
-    ZOLA_VERSION=0.22.1
+    ZOLA_VERSION=0.23.4
     ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     ZOLA="${ROOT_DIR}/zola"
     DEV_ROOT="$(mktemp -d)"
@@ -12,11 +12,15 @@ main() {
     }
     trap cleanup EXIT
 
-    if [[ ! -x "${ZOLA}" ]] && command -v zola >/dev/null 2>&1; then
+    zola_is_pinned() {
+        [[ -x "$1" ]] && [[ "$("$1" --version 2>/dev/null | awk 'NR == 1 { print $2 }')" == "${ZOLA_VERSION}" ]]
+    }
+
+    if ! zola_is_pinned "${ZOLA}" && command -v zola >/dev/null 2>&1 && zola_is_pinned "$(command -v zola)"; then
         ZOLA="$(command -v zola)"
     fi
 
-    if [[ ! -x "${ZOLA}" ]]; then
+    if ! zola_is_pinned "${ZOLA}"; then
         archive="$(mktemp)"
         curl -sL "https://github.com/getzola/zola/releases/download/v${ZOLA_VERSION}/zola-v${ZOLA_VERSION}-x86_64-unknown-linux-gnu.tar.gz" -o "${archive}"
         tar -xzf "${archive}" -C "${ROOT_DIR}"

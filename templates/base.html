@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ lang | default(value='en') }}" prefix="og: https://ogp.me/ns#">
 <head>
+    {% set page = page | default(value={}) %}
+    {% set section = section | default(value={}) %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
@@ -45,14 +47,14 @@
     {% endif %}
 
     {# Keywords from tags #}
-    {% if page.taxonomies.tags is defined and page.taxonomies.tags %}
+    {% if page.taxonomies is defined and page.taxonomies.tags is defined and page.taxonomies.tags %}
     <meta name="keywords" content="{{ page.taxonomies.tags | join(sep=', ') }}">
     {% elif config.extra.keywords is defined %}
     <meta name="keywords" content="{{ config.extra.keywords }}">
     {% endif %}
 
     {# Author #}
-    {% if config.extra.author.name is defined %}
+    {% if config.extra.author is defined and config.extra.author.name is defined %}
     <meta name="author" content="{{ config.extra.author.name }}">
     {% endif %}
 
@@ -103,7 +105,7 @@
     {% if page.updated is defined and page.updated %}
     <meta property="article:modified_time" content="{{ page.updated | date(format='%Y-%m-%dT%H:%M:%S') }}">
     {% endif %}
-    {% if page.taxonomies.tags is defined %}
+    {% if page.taxonomies is defined and page.taxonomies.tags is defined %}
     {% for tag in page.taxonomies.tags %}
     <meta property="article:tag" content="{{ tag }}">
     {% endfor %}
@@ -207,7 +209,7 @@
                 "publisher": {
                     "@id": "{{ config.base_url | safe }}#organization"
                 },
-                {% if page.taxonomies.tags is defined %}
+                {% if page.taxonomies is defined and page.taxonomies.tags is defined %}
                 "keywords": "{{ page.taxonomies.tags | join(sep=', ') }}",
                 {% endif %}
                 {% if page.word_count is defined %}
