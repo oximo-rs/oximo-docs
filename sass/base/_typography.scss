@@ -279,6 +279,20 @@ input[type="checkbox"] {
   }
 }
 
+// Completed task-list items on the roadmap
+.page-roadmap li:has(> input[type="checkbox"]:checked) {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-text-muted);
+  text-decoration-thickness: 1px;
+
+  // Keep links and inline code muted along with the rest of the item.
+  a,
+  code:not(pre code) {
+    color: inherit;
+  }
+}
+
 // Light theme: white checkbox background
 [data-theme="light"] input[type="checkbox"] {
   background: #fff;
