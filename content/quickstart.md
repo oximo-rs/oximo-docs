@@ -16,16 +16,16 @@ cargo add oximo --features highs
 
 ## The problem
 
-\[
+$$
 \begin{aligned}
-\max \quad & 3x + 4y \\
-\text{s.t.} \quad & x + 2y \le 14 \\
-                  & 3x \ge y \\
-                  & x \le y + 2 \\
-                  & x \ge 0 \\
+\max \quad & 3x + 4y \\\\
+\text{s.t.} \quad & x + 2y \le 14 \\\\
+                  & 3x \ge y \\\\
+                  & x \le y + 2 \\\\
+                  & x \ge 0 \\\\
                   & 0 \le y \le 4
 \end{aligned}
-\]
+$$
 
 ## The full program
 
