@@ -9,7 +9,7 @@ generate_feeds = false
 insert_anchor_links = "left"
 
 [markdown.highlighting]
-style = "class"
+style = "inline"
 light_theme = "one-light"
 dark_theme = "one-dark-pro"
 

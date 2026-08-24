@@ -28,6 +28,10 @@ pre {
   }
 }
 
+pre.giallo {
+  color-scheme: inherit !important;
+}
+
 // Header bar with language label
 pre[data-lang]::before {
   content: attr(data-lang);

@@ -55,6 +55,7 @@
     bash: 'Bash',
     zsh: 'Zsh',
     fish: 'Fish',
+    shellscript: 'Shell',
     ps: 'PowerShell',
     powershell: 'PowerShell',
     dockerfile: 'Dockerfile',
@@ -63,6 +64,7 @@
     markdown: 'Markdown',
     txt: 'Plain Text',
     text: 'Plain Text',
+    plain: 'Plain Text',
     diff: 'Diff',
     git: 'Git',
     vim: 'Vim',
@@ -112,11 +114,15 @@
     return languageNames[lower] || lang.toUpperCase();
   }
 
-  function isKDLBlock(pre, code) {
+  function getCodeLanguage(code) {
     const langClass = Array.from(code.classList).find(c => c.startsWith('language-'));
-    if (!langClass) return false;
-    const lang = langClass.replace('language-', '').toLowerCase();
-    return lang === 'kdl';
+    return langClass
+      ? langClass.replace('language-', '')
+      : code.getAttribute('data-lang');
+  }
+
+  function isKDLBlock(pre, code) {
+    return (getCodeLanguage(code) || '').toLowerCase() === 'kdl';
   }
 
   // Pages where KDL validation should be skipped (partial snippets only)
@@ -285,9 +291,8 @@
       pre.style.position = 'relative';
 
       // Get language from class (e.g., "language-javascript")
-      const langClass = Array.from(code.classList).find(c => c.startsWith('language-'));
-      if (langClass) {
-        const lang = langClass.replace('language-', '');
+      const lang = getCodeLanguage(code);
+      if (lang) {
         pre.setAttribute('data-lang', getLanguageName(lang) || lang);
       }
 
