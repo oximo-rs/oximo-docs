@@ -207,10 +207,6 @@ sos_constraint!(m, weighted_choice, SOS2, [
 ]);
 ```
 
-SOS constraints are currently passed through only to backends with native SOS
-support. oximo does not automatically reformulate SOS sets into linear constraints
-yet. Backends without native support reject models that contain SOS constraints.
-
 ### Indexed SOS families
 
 The indexed form creates one SOS constraint for every key in the binder. The
@@ -245,6 +241,53 @@ m.add_sos_constraint_auto_weights("one_choice", SosType::Sos1, members);
 
 Use `Model::add_sos_constraint` instead when supplying explicit weights from a
 runtime iterator.
+
+Backends with native SOS support, such as Gurobi, consume these constraints
+directly. Other backends reject a model while it still contains active SOS
+constraints. oximo never changes the formulation implicitly, but you can
+explicitly replace every active SOS with a portable MILP formulation before
+using a backend such as HiGHS:
+
+```rust
+use oximo::prelude::*;
+use oximo::{HighsOptions, solvers::Highs};
+
+let m = Model::new("reformulated_sos");
+variable!(m, 0.0 <= x <= 10.0);
+variable!(m, 0.0 <= y <= 10.0);
+variable!(m, 0.0 <= z <= 10.0);
+sos_constraint!(m, choice, SOS1, [x, y, z]);
+objective!(m, Max, x + 2.0 * y + 3.0 * z);
+
+// Uses each member's finite bounds as its Big-M values. The source SOS is
+// retained as inactive provenance, while binary variables and linear rows are
+// appended to `m`.
+let artifacts = m.reformulate_sos(SosReformulationOptions::default())?;
+let result = Highs.solve(&m, &HighsOptions::default())?;
+```
+
+`Model::reformulate_sos` modifies the model in place and returns the generated
+variable and constraint IDs. To retain the native-SOS model—for example, to
+solve it with Gurobi as well—produce an independent transformed model instead:
+
+```rust
+let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
+let result = Highs.solve(&reformulated, &HighsOptions::default())?;
+```
+
+A member needs finite bounds in every direction in which it can be nonzero. If
+that is not available, reformulation returns an error unless you explicitly
+provide a positive finite fallback:
+
+```rust
+let options = SosReformulationOptions::default().with_fallback_big_m(1.0e6);
+let reformulated = m.to_reformulated_sos_model(options)?;
+```
+
+A fallback that is too small truncates the feasible region. Generated Big-M
+rows embed the member bounds that existed during reformulation, so those bounds
+cannot subsequently be changed on the transformed model. Change bounds on the
+native source first and then produce a fresh reformulated model.
 
 ## Objectives
 
