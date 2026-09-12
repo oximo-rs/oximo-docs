@@ -145,13 +145,16 @@ let rhs = 4.0 * x + 5.0;
 
 Behind the scenes oximo uses arena-allocated expression trees ([`oximo-expr`][oximo-expr]), so combining large [`Expr`][Expr]s stays cheap.
 
-## Summing over sets
+## Aggregating over sets
 
 When an expression has one term per key, use `sum!` instead of building a Rust
 loop. It produces one [`Expr`][Expr] that can go anywhere an expression is
 accepted.
 
 `sum!(body for k in set)` reads as \\(\sum_{k \in \text{set}} \text{body}\\).
+The `min!` and `max!` macros use the same domains, Cartesian products, and
+filters to build one flattened minimum or maximum expression. Their domains
+must contain at least one selected key.
 
 ```rust
 // Single sum: sum over i in items of weights[i] * x[i]
@@ -162,6 +165,10 @@ let total_cost = sum!(c[p, q] * x[p, q] for p in plants, q in markets);
 
 // Filtered sum.
 let active = sum!(x[i] for i in 0..n if online[i]);
+
+// Indexed extrema, with the same domain and filter syntax.
+let least_slack = min!(capacity[i] - x[i] for i in items);
+let peak_load = max!(load[t] for t in periods if online[t]);
 ```
 
 For the plain dot-product case there is also [`dot`][dot].
@@ -326,9 +333,18 @@ constraint!(m, name = format!("bal_{p}"), inflow[p] - outflow[p] == 0.0);
 
 ## Nonlinear expressions
 
-`Pow`, `Sin`, `Cos`, `Exp`, `Log`, `Abs`, and bilinear products are first-class,
-so you can write nonlinear algebra in the same expressions as linear terms.
-The model's kind is inferred from what you write.
+Nonlinear operations are first-class expression nodes, so they compose with
+linear terms and indexed aggregations. [`Expr`][Expr] provides:
+
+- powers: `pow`, `powi`, and `powf`,
+- roots and magnitude: `sqrt`, `cbrt`, and `abs`,
+- exponentials and logarithms: `exp`, `exp2`, `expm1`, `log`/`ln`, `log2`,
+  `log10`, and `log1p`/`ln_1p`,
+- trigonometric and inverse-trigonometric functions: `sin`, `cos`, `tan`,
+  `asin`, `acos`, and `atan`,
+- hyperbolic and inverse-hyperbolic functions: `sinh`, `cosh`, `tanh`,
+  `asinh`, `acosh`, and `atanh`,
+- binary `atan2`, `min`, and `max`.
 
 ```rust
 // Rosenbrock NLP
@@ -342,6 +358,9 @@ soc_constraint!(m3, cone, [x, y] <= t);
 
 // Transcendental utility (MINLP when any variable is integer/binary)
 objective!(m4, Max, sum!(u[i] * (1.0 + w[i] * x[i]).log() for i in items));
+
+// Functions and extrema compose as ordinary expressions.
+constraint!(m5, response, x.exp() + y.tanh() <= x.max(y) + 3.0);
 ```
 
 Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKind`][ModelKind]. Backends reject kinds they don't support. See [Printing & Debugging](../debugging/#checking-the-model-kind).
