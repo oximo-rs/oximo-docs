@@ -156,6 +156,23 @@ The `min!` and `max!` macros use the same domains, Cartesian products, and
 filters to build one flattened minimum or maximum expression. Their domains
 must contain at least one selected key.
 
+Empty sums are handled as the additive identity when the model is known. Sums
+inside `constraint!`, `objective!`, and `soc_constraint!` inherit that macro's
+model automatically, including nested sums and filtered domains:
+
+```rust
+// If maybe_empty has no selected keys, this contributes the model's zero.
+constraint!(m, balance, sum!(x[i] for i in maybe_empty) == 0.0);
+
+// Use the explicit model form for a standalone sum.
+let total = sum!(m, x[i] for i in maybe_empty);
+```
+
+The explicit `sum!(model, ...)` form also ensures that every selected term
+belongs to that model. An unanchored standalone sum still needs at least one
+term, because it has no model-owned expression context from which to construct
+the empty result.
+
 ```rust
 // Single sum: sum over i in items of weights[i] * x[i]
 constraint!(m, cap, sum!(weights[i] * x[i] for i in items) <= capacity);
