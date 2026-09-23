@@ -28,8 +28,8 @@ active design, and **Considering** is an idea we like but have not committed to.
   and special-ordered sets. _(Planned)_
 - [x] **Native indicator constraints.** Ergonomic scalar and indexed macros,
   native Gurobi and MOSEK support, and selected GAMS sub-solvers.
-- [ ] **Indicator reformulations.** Add explicit portable reformulations for
-  backends without native indicator support. _(Planned)_
+- [x] **Indicator reformulations.** Explicit Big-M reformulations for backends
+  without native indicator support.
 
 ## I/O
 

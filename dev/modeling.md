@@ -249,8 +249,42 @@ indicator_constraint!(
 
 Gurobi and MOSEK consume indicators natively. GAMS supports them when an
 explicit COPT, CPLEX, Gurobi, SCIP, or Xpress sub-solver is selected. Other
-backends return `SolverError::UnsupportedIndicator`; oximo does not currently
-reformulate indicators automatically.
+backends return `SolverError::UnsupportedIndicator` while active indicators
+remain in the model. To use one of those backends, explicitly replace the
+indicators with linear Big-M rows:
+
+```rust
+use oximo::prelude::*;
+use oximo::{HighsOptions, solvers::Highs};
+
+let m = Model::new("reformulated_indicators");
+variable!(m, produce, Binary);
+variable!(m, 0.0 <= quantity <= 10.0);
+indicator_constraint!(m, capacity, produce == 1 => quantity <= 7.0);
+indicator_constraint!(m, shutdown, produce == 0 => quantity == 0.0);
+objective!(m, Max, quantity + 2.0 * produce);
+
+let artifacts = m.reformulate_indicators(IndicatorReformulationOptions::default())?;
+let result = Highs.solve(&m, &HighsOptions::default())?;
+```
+
+`Model::reformulate_indicators` changes the model in place without cloning it
+and returns artifacts containing the generated constraint IDs. To retain the
+native-indicator model, use `m.to_reformulated_indicator_model(options)` to make
+an independent transformed model. Both forms preserve source indicator IDs,
+mark the sources inactive, and record generated constraint IDs in
+`indicator_reformulations()`. They add no variables. For one indicator, use its
+handle's `reformulate(options)` or `to_reformulated_model(options)` method.
+
+Each finite side of an indicator gets a Big-M row. oximo derives M from the
+body's affine coefficients and variable bounds, including the zero option for
+semi-continuous and semi-integer variables. For an unbounded side, pass a
+positive, finite fallback M to the in-place call instead:
+
+```rust
+let options = IndicatorReformulationOptions::default().with_fallback_big_m(1.0e6);
+m.reformulate_indicators(options)?;
+```
 
 ## Special ordered sets (SOS) constraints
 
@@ -346,18 +380,19 @@ let result = Highs.solve(&reformulated, &HighsOptions::default())?;
 ```
 
 A member needs finite bounds in every direction in which it can be nonzero. If
-that is not available, reformulation returns an error unless you explicitly
-provide a positive finite fallback:
+that is not available, pass a positive finite fallback to the in-place call
+instead:
 
 ```rust
 let options = SosReformulationOptions::default().with_fallback_big_m(1.0e6);
-let reformulated = m.to_reformulated_sos_model(options)?;
+m.reformulate_sos(options)?;
 ```
 
 A fallback that is too small truncates the feasible region. Generated Big-M
 rows embed the member bounds that existed during reformulation, so those bounds
-cannot subsequently be changed on the transformed model. Change bounds on the
-native source first and then produce a fresh reformulated model.
+cannot subsequently be changed on the transformed model. Set those bounds
+before reformulating, or change them on a retained native source and make a
+fresh reformulated model.
 
 ## Objectives
 
