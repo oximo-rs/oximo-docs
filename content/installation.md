@@ -61,7 +61,7 @@ for example:
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["pounce"] }
+oximo = { version = "0.7", features = ["pounce"] }
 ```
 
 With no solver feature, you can still construct models and export them through

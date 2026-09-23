@@ -197,7 +197,7 @@ If you don't need file export, opt out of the `io` feature to drop the dependenc
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", default-features = false, features = ["highs"] }
+oximo = { version = "0.7", default-features = false, features = ["highs"] }
 ```
 
 [Model]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html

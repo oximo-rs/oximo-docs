@@ -182,7 +182,7 @@ Gurobi license is active.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["gurobi"] }
+oximo = { version = "0.7", features = ["gurobi"] }
 ```
 
 ```rust
@@ -222,7 +222,7 @@ Only MOSEK 11.2 is currently supported.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["mosek"] }
+oximo = { version = "0.7", features = ["mosek"] }
 ```
 
 ```rust
@@ -250,7 +250,7 @@ on `PATH`, and exchanges model and result files with the external executable.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["baron"] }
+oximo = { version = "0.7", features = ["baron"] }
 ```
 
 ```rust
@@ -273,7 +273,7 @@ indicator handling is sub-solver-specific.
 
 ```toml
 [dependencies]
-oximo = { version = "0.6", features = ["gams"] }
+oximo = { version = "0.7", features = ["gams"] }
 ```
 
 ```rust
