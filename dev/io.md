@@ -118,10 +118,12 @@ let model_from_stream = read_mps(File::open("model.mps")?)?;
 ```
 
 The reader accepts the standard linear sections, range rows, integer markers,
-binary and semi-variable bounds, and the `QUADOBJ`, `QMATRIX`, `QCMATRIX`, and
-`QSECTION` quadratic extensions. MPS does not identify the coefficient scaling
-used by quadratic constraints, so the default is the Gurobi convention. Select
-CPLEX or MOSEK scaling explicitly when needed:
+binary and semi-variable bounds, SOS sections, `INDICATORS` records, and the
+`QUADOBJ`, `QMATRIX`, `QCMATRIX`, and `QSECTION` quadratic extensions. An MPS
+indicator references an ordinary affine row using `IF row binary 0|1`; ranged
+indicator bodies are represented as two rows. MPS does not identify the
+coefficient scaling used by quadratic constraints, so the default is the
+Gurobi convention. Select CPLEX or MOSEK scaling explicitly when needed:
 
 ```rust
 use oximo::io::{
@@ -135,8 +137,8 @@ let model = read_mps_file_with("cplex-model.mps", &options)?;
 ```
 
 Malformed input returns [IoError::InvalidMps][IoError]. Multiple alternative
-RHS, range, or bounds vectors and semantics not represented by oximo-core, such
-as SOS and indicator constraints, return [IoError::UnsupportedMps][IoError].
+RHS, range, or bounds vectors and unsupported MPS constructs return
+[IoError::UnsupportedMps][IoError].
 
 ## Reading NL models
 
@@ -178,9 +180,14 @@ let model_from_stream = read_lp(File::open("model.lp")?)?;
 
 The reader supports the CPLEX LP linear and quadratic subset represented by the
 core model, including objectives, constraints, bounds, integer/binary and
-semicontinuous domains, and quadratic terms. Malformed input returns
+semicontinuous domains, quadratic terms, SOS sections, and inline indicator
+rows of the form `binary = 0|1 -> affine relation`. Ranged indicator bodies are
+written as two indicator rows. Malformed input returns
 [IoError::InvalidLp][IoError] with its source line and column. Unsupported LP
 sections return [IoError::UnsupportedLp][IoError].
+
+NL has no native segment for the indicator representation used by oximo.
+Writing a model with an active indicator returns `IoError::UnsupportedNl`.
 
 ## Skipping the writers
 

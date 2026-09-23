@@ -267,6 +267,10 @@ let result = Baron::new().solve(&m, &BaronOptions::default())?;
 want to route a model through GAMS-managed solvers (CPLEX, BARON, IPOPT,
 KNITRO, ...).
 
+For a model containing indicators, select COPT, CPLEX, Gurobi, SCIP, or Xpress
+explicitly in `GamsOptions`. The default solver selection is rejected because
+indicator handling is sub-solver-specific.
+
 ```toml
 [dependencies]
 oximo = { version = "0.6", features = ["gams"] }

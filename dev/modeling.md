@@ -206,6 +206,52 @@ constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 
 For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
 
+## Indicator constraints
+
+The [`indicator_constraint!`][indicator_constraint] macro applies an affine
+relation only when a binary trigger has a selected value. The implication is
+one-way: when the trigger has the other value, the relation is not enforced.
+
+```rust
+variable!(m, enabled, Binary);
+variable!(m, -10.0 <= x <= 20.0);
+
+indicator_constraint!(m, capacity, enabled == 1 => x <= 8.0);
+indicator_constraint!(m, shutdown, enabled == 0 => x == 0.0);
+indicator_constraint!(m, operating_band, enabled == 1 => -2.0 <= x <= 4.0);
+```
+
+The trigger must be a bare binary variable from the same model, its selected
+value must be the literal `0` or `1`, and the consequent must be affine. The
+constraint does not imply the reverse direction: satisfying `x <= 8.0` does
+not force `enabled` to equal `1`.
+
+Indicator constraints support the same indexed-family and computed-name forms
+as ordinary constraints:
+
+```rust
+variable!(m, enabled[t in periods], Binary);
+variable!(m, production[t in periods] >= 0.0);
+
+indicator_constraint!(
+    m,
+    capacity[t in periods if available[t]],
+    enabled[t] == 1 => production[t] <= capacity_at(t),
+);
+
+let row_name = "shutdown_final";
+indicator_constraint!(
+    m,
+    name = row_name,
+    enabled[last] == 0 => production[last] == 0.0,
+);
+```
+
+Gurobi and MOSEK consume indicators natively. GAMS supports them when an
+explicit COPT, CPLEX, Gurobi, SCIP, or Xpress sub-solver is selected. Other
+backends return `SolverError::UnsupportedIndicator`; oximo does not currently
+reformulate indicators automatically.
+
 ## Special ordered sets (SOS) constraints
 
 SOS1 and SOS2 constraints are native special ordered sets. SOS1 allows at most
@@ -396,6 +442,7 @@ Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKi
 [dot]: https://docs.rs/oximo/latest/oximo/prelude/fn.dot.html
 [variable]: https://docs.rs/oximo/latest/oximo/prelude/macro.variable.html
 [constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.constraint.html
+[indicator_constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.indicator_constraint.html
 [set-macro]: https://docs.rs/oximo/latest/oximo/prelude/macro.set.html
 [oximo-expr]: https://docs.rs/oximo-expr/latest/oximo_expr/
 [soc_constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.soc_constraint.html
