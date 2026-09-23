@@ -46,8 +46,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = Highs.solve(&m, &HighsOptions::default())?;
     println!("obj = {:?}", result.objective()); // Some(34.0)
-    println!("x   = {:?}", result.value_of(x)?); // Some(6.0)
-    println!("y   = {:?}", result.value_of(y)?); // Some(4.0)
+    println!("x   = {:?}", result.value_of(x)); // Some(6.0)
+    println!("y   = {:?}", result.value_of(y)); // Some(4.0)
     Ok(())
 }
 ```

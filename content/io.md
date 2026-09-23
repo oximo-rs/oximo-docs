@@ -30,13 +30,14 @@ Each returns a `String` you can log, hash, or feed into something else in memory
 
 ```rust
 use oximo::io;
+use std::fs::File;
 
-io::write_mps(&m, "model.mps")?;
-io::write_lp(&m, "model.lp")?;
-io::write_nl(&m, "model.nl")?;
+io::write_mps(&m, &mut File::create("model.mps")?)?;
+io::write_lp(&m, &mut File::create("model.lp")?)?;
+io::write_nl(&m, &mut File::create("model.nl")?)?;
 ```
 
-All three accept anything that implements `AsRef<Path>`.
+Each writer accepts anything that implements `std::io::Write`.
 
 ## Picking a format
 
@@ -55,12 +56,51 @@ The NL writer is the most configurable of the three. [`write_nl_with`][write_nl_
 
 ```rust
 use oximo::io::{NlFormat, WriteOptions, write_nl_with};
+use std::fs::File;
 
-let opts = WriteOptions::default().format(NlFormat::Ascii);
-write_nl_with(&m, "model.nl", &opts)?;
+let opts = WriteOptions { format: NlFormat::Ascii, ..Default::default() };
+write_nl_with(&m, &mut File::create("model.nl")?, &opts)?;
 ```
 
 [`write_nl_files`][write_nl_files] emits the `.nl` alongside its companion `.col`/`.row` name files, which is what most AMPL-compatible solvers expect when you want readable names in the solution.
+
+## NL operator support
+
+The NL writer emits supported nonlinear operations as exact prefix opcode
+trees. The reader uses the same mapping for ASCII and little-endian binary NL:
+
+| Opcode | Operation     | oximo support                           |
+| ------ | ------------- | --------------------------------------- |
+| `o13`  | `floor`       | Not represented by the expression model |
+| `o14`  | `ceil`        | Not represented by the expression model |
+| `o15`  | `abs`         | Read and written                        |
+| `o16`  | unary `-`     | Read and written                        |
+| `o34`  | logical `not` | Logical expressions are not represented |
+| `o37`  | `tanh`        | Read and written                        |
+| `o38`  | `tan`         | Read and written                        |
+| `o39`  | `sqrt`        | Read and written                        |
+| `o40`  | `sinh`        | Read and written                        |
+| `o41`  | `sin`         | Read and written                        |
+| `o42`  | `log10`       | Read and written                        |
+| `o43`  | `log`         | Read and written                        |
+| `o44`  | `exp`         | Read and written                        |
+| `o45`  | `cosh`        | Read and written                        |
+| `o46`  | `cos`         | Read and written                        |
+| `o47`  | `atanh`       | Read and written                        |
+| `o49`  | `atan`        | Read and written                        |
+| `o50`  | `asinh`       | Read and written                        |
+| `o51`  | `asin`        | Read and written                        |
+| `o52`  | `acosh`       | Read and written                        |
+| `o53`  | `acos`        | Read and written                        |
+
+`exp2(x)` is written exactly as the power expression `2 ^ x` (`o5`), because
+NL has no separate `exp2` opcode.
+
+The oximo operations `cbrt`, `expm1`, `log1p`, and `log2` also have no direct
+NL opcode. Writing one returns
+[`IoError::UnsupportedNonlinearOperator`][IoError].
+Reading `floor`, `ceil`, logical `not`, or another
+well-formed but unrepresentable opcode returns [`IoError::UnsupportedNl`][IoError].
 
 ## Names round-trip
 
@@ -80,10 +120,12 @@ let model_from_stream = read_mps(File::open("model.mps")?)?;
 ```
 
 The reader accepts the standard linear sections, range rows, integer markers,
-binary and semi-variable bounds, and the `QUADOBJ`, `QMATRIX`, `QCMATRIX`, and
-`QSECTION` quadratic extensions. MPS does not identify the coefficient scaling
-used by quadratic constraints, so the default is the Gurobi convention. Select
-CPLEX or MOSEK scaling explicitly when needed:
+binary and semi-variable bounds, SOS sections, `INDICATORS` records, and the
+`QUADOBJ`, `QMATRIX`, `QCMATRIX`, and `QSECTION` quadratic extensions. An MPS
+indicator references an ordinary affine row using `IF row binary 0|1`; ranged
+indicator bodies are represented as two rows. MPS does not identify the
+coefficient scaling used by quadratic constraints, so the default is the
+Gurobi convention. Select CPLEX or MOSEK scaling explicitly when needed:
 
 ```rust
 use oximo::io::{
@@ -97,8 +139,8 @@ let model = read_mps_file_with("cplex-model.mps", &options)?;
 ```
 
 Malformed input returns [IoError::InvalidMps][IoError]. Multiple alternative
-RHS, range, or bounds vectors and semantics not represented by oximo-core, such
-as SOS and indicator constraints, return [IoError::UnsupportedMps][IoError].
+RHS, range, or bounds vectors and unsupported MPS constructs return
+[IoError::UnsupportedMps][IoError].
 
 ## Reading NL models
 
@@ -140,9 +182,14 @@ let model_from_stream = read_lp(File::open("model.lp")?)?;
 
 The reader supports the CPLEX LP linear and quadratic subset represented by the
 core model, including objectives, constraints, bounds, integer/binary and
-semicontinuous domains, and quadratic terms. Malformed input returns
+semicontinuous domains, quadratic terms, SOS sections, and inline indicator
+rows of the form `binary = 0|1 -> affine relation`. Ranged indicator bodies are
+written as two indicator rows. Malformed input returns
 [IoError::InvalidLp][IoError] with its source line and column. Unsupported LP
 sections return [IoError::UnsupportedLp][IoError].
+
+NL has no native segment for the indicator representation used by oximo.
+Writing a model with an active indicator returns `IoError::UnsupportedNl`.
 
 ## Skipping the writers
 

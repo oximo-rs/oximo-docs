@@ -24,8 +24,12 @@ active design, and **Considering** is an idea we like but have not committed to.
 
 ## Modeling
 
-- [ ] **Indicator and SOS constraints.** Ergonomic macros for indicator constraints
+- [x] **SOS constraints.** Ergonomic macros for Special Ordered Sets constraints
   and special-ordered sets. _(Planned)_
+- [x] **Native indicator constraints.** Ergonomic scalar and indexed macros,
+  native Gurobi and MOSEK support, and selected GAMS sub-solvers.
+- [x] **Indicator reformulations.** Explicit Big-M reformulations for backends
+  without native indicator support.
 
 ## I/O
 

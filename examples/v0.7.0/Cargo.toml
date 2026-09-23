@@ -1,0 +1,18 @@
+[package]
+name = "oximo-docs-examples-v0_7_0"
+version = "0.7.0"
+edition = "2024"
+rust-version = "1.89"
+publish = false
+description = "Runnable scripts reproducing the oximo v0.7.0 docs examples"
+
+[dependencies]
+oximo = { version = "0.7.0", features = ["highs"] }
+
+[features]
+clarabel = ["oximo/clarabel"]
+pounce = ["oximo/pounce"]
+gurobi = ["oximo/gurobi"]
+mosek = ["oximo/mosek"]
+gams = ["oximo/gams"]
+baron = ["oximo/baron"]

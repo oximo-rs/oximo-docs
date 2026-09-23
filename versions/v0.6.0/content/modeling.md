@@ -145,33 +145,13 @@ let rhs = 4.0 * x + 5.0;
 
 Behind the scenes oximo uses arena-allocated expression trees ([`oximo-expr`][oximo-expr]), so combining large [`Expr`][Expr]s stays cheap.
 
-## Aggregating over sets
+## Summing over sets
 
 When an expression has one term per key, use `sum!` instead of building a Rust
 loop. It produces one [`Expr`][Expr] that can go anywhere an expression is
 accepted.
 
 `sum!(body for k in set)` reads as \\(\sum_{k \in \text{set}} \text{body}\\).
-The `min!` and `max!` macros use the same domains, Cartesian products, and
-filters to build one flattened minimum or maximum expression. Their domains
-must contain at least one selected key.
-
-Empty sums are handled as the additive identity when the model is known. Sums
-inside `constraint!`, `objective!`, and `soc_constraint!` inherit that macro's
-model automatically, including nested sums and filtered domains:
-
-```rust
-// If maybe_empty has no selected keys, this contributes the model's zero.
-constraint!(m, balance, sum!(x[i] for i in maybe_empty) == 0.0);
-
-// Use the explicit model form for a standalone sum.
-let total = sum!(m, x[i] for i in maybe_empty);
-```
-
-The explicit `sum!(model, ...)` form also ensures that every selected term
-belongs to that model. An unanchored standalone sum still needs at least one
-term, because it has no model-owned expression context from which to construct
-the empty result.
 
 ```rust
 // Single sum: sum over i in items of weights[i] * x[i]
@@ -182,10 +162,6 @@ let total_cost = sum!(c[p, q] * x[p, q] for p in plants, q in markets);
 
 // Filtered sum.
 let active = sum!(x[i] for i in 0..n if online[i]);
-
-// Indexed extrema, with the same domain and filter syntax.
-let least_slack = min!(capacity[i] - x[i] for i in items);
-let peak_load = max!(load[t] for t in periods if online[t]);
 ```
 
 For the plain dot-product case there is also [`dot`][dot].
@@ -205,194 +181,6 @@ constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 ```
 
 For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
-
-## Indicator constraints
-
-The [`indicator_constraint!`][indicator_constraint] macro applies an affine
-relation only when a binary trigger has a selected value. The implication is
-one-way: when the trigger has the other value, the relation is not enforced.
-
-```rust
-variable!(m, enabled, Binary);
-variable!(m, -10.0 <= x <= 20.0);
-
-indicator_constraint!(m, capacity, enabled == 1 => x <= 8.0);
-indicator_constraint!(m, shutdown, enabled == 0 => x == 0.0);
-indicator_constraint!(m, operating_band, enabled == 1 => -2.0 <= x <= 4.0);
-```
-
-The trigger must be a bare binary variable from the same model, its selected
-value must be the literal `0` or `1`, and the consequent must be affine. The
-constraint does not imply the reverse direction: satisfying `x <= 8.0` does
-not force `enabled` to equal `1`.
-
-Indicator constraints support the same indexed-family and computed-name forms
-as ordinary constraints:
-
-```rust
-variable!(m, enabled[t in periods], Binary);
-variable!(m, production[t in periods] >= 0.0);
-
-indicator_constraint!(
-    m,
-    capacity[t in periods if available[t]],
-    enabled[t] == 1 => production[t] <= capacity_at(t),
-);
-
-let row_name = "shutdown_final";
-indicator_constraint!(
-    m,
-    name = row_name,
-    enabled[last] == 0 => production[last] == 0.0,
-);
-```
-
-Gurobi and MOSEK consume indicators natively. GAMS supports them when an
-explicit COPT, CPLEX, Gurobi, SCIP, or Xpress sub-solver is selected. Other
-backends return `SolverError::UnsupportedIndicator` while active indicators
-remain in the model. To use one of those backends, explicitly replace the
-indicators with linear Big-M rows:
-
-```rust
-use oximo::prelude::*;
-use oximo::{HighsOptions, solvers::Highs};
-
-let m = Model::new("reformulated_indicators");
-variable!(m, produce, Binary);
-variable!(m, 0.0 <= quantity <= 10.0);
-indicator_constraint!(m, capacity, produce == 1 => quantity <= 7.0);
-indicator_constraint!(m, shutdown, produce == 0 => quantity == 0.0);
-objective!(m, Max, quantity + 2.0 * produce);
-
-let artifacts = m.reformulate_indicators(IndicatorReformulationOptions::default())?;
-let result = Highs.solve(&m, &HighsOptions::default())?;
-```
-
-`Model::reformulate_indicators` changes the model in place without cloning it
-and returns artifacts containing the generated constraint IDs. To retain the
-native-indicator model, use `m.to_reformulated_indicator_model(options)` to make
-an independent transformed model. Both forms preserve source indicator IDs,
-mark the sources inactive, and record generated constraint IDs in
-`indicator_reformulations()`. They add no variables. For one indicator, use its
-handle's `reformulate(options)` or `to_reformulated_model(options)` method.
-
-Each finite side of an indicator gets a Big-M row. oximo derives M from the
-body's affine coefficients and variable bounds, including the zero option for
-semi-continuous and semi-integer variables. For an unbounded side, pass a
-positive, finite fallback M to the in-place call instead:
-
-```rust
-let options = IndicatorReformulationOptions::default().with_fallback_big_m(1.0e6);
-m.reformulate_indicators(options)?;
-```
-
-## Special ordered sets (SOS) constraints
-
-SOS1 and SOS2 constraints are native special ordered sets. SOS1 allows at most
-one nonzero member. SOS2 allows at most two adjacent nonzero members according
-to their ordering weights.
-
-Use the short form when member order itself defines the weights. It assigns
-consecutive weights `1.0`, `2.0`, and so on:
-
-```rust
-sos_constraint!(m, one_choice, SOS1, [x, y, z]);
-sos_constraint!(m, adjacent_choice, SOS2, [x, y, z]);
-```
-
-Use explicit `(variable, weight)` pairs when the ordering values are meaningful
-or nonuniform:
-
-```rust
-sos_constraint!(m, weighted_choice, SOS2, [
-    (x, 10.0),
-    (y, 20.0),
-    (z, 50.0),
-]);
-```
-
-### Indexed SOS families
-
-The indexed form creates one SOS constraint for every key in the binder. The
-index domain must be written explicitly; the macro cannot infer it from an
-`IndexedVar`:
-
-```rust
-variable!(m, x[i in 0..n] >= 0.0);
-variable!(m, y[i in 0..n] >= 0.0);
-variable!(m, z[i in 0..n] >= 0.0);
-
-sos_constraint!(m, choice[i in 0..n], SOS1, [x[i], y[i], z[i]]);
-```
-
-This registers `choice[0]`, `choice[1]`, and so on, with positional weights
-`1.0`, `2.0`, and `3.0` in each set. Explicit weights work in the same form:
-
-```rust
-sos_constraint!(m, curve[i in 0..n], SOS2, [
-    (x[i], 1.0),
-    (y[i], 2.0),
-    (z[i], 3.0),
-]);
-```
-
-For one SOS over a dynamically assembled collection, use the method API:
-
-```rust
-let members = vec![x, y, z];
-m.add_sos_constraint_auto_weights("one_choice", SosType::Sos1, members);
-```
-
-Use `Model::add_sos_constraint` instead when supplying explicit weights from a
-runtime iterator.
-
-Backends with native SOS support, such as Gurobi, consume these constraints
-directly. Other backends reject a model while it still contains active SOS
-constraints. oximo never changes the formulation implicitly, but you can
-explicitly replace every active SOS with a portable MILP formulation before
-using a backend such as HiGHS:
-
-```rust
-use oximo::prelude::*;
-use oximo::{HighsOptions, solvers::Highs};
-
-let m = Model::new("reformulated_sos");
-variable!(m, 0.0 <= x <= 10.0);
-variable!(m, 0.0 <= y <= 10.0);
-variable!(m, 0.0 <= z <= 10.0);
-sos_constraint!(m, choice, SOS1, [x, y, z]);
-objective!(m, Max, x + 2.0 * y + 3.0 * z);
-
-// Uses each member's finite bounds as its Big-M values. The source SOS is
-// retained as inactive provenance, while binary variables and linear rows are
-// appended to `m`.
-let artifacts = m.reformulate_sos(SosReformulationOptions::default())?;
-let result = Highs.solve(&m, &HighsOptions::default())?;
-```
-
-`Model::reformulate_sos` modifies the model in place and returns the generated
-variable and constraint IDs. To retain the native-SOS model—for example, to
-solve it with Gurobi as well—produce an independent transformed model instead:
-
-```rust
-let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
-let result = Highs.solve(&reformulated, &HighsOptions::default())?;
-```
-
-A member needs finite bounds in every direction in which it can be nonzero. If
-that is not available, pass a positive finite fallback to the in-place call
-instead:
-
-```rust
-let options = SosReformulationOptions::default().with_fallback_big_m(1.0e6);
-m.reformulate_sos(options)?;
-```
-
-A fallback that is too small truncates the feasible region. Generated Big-M
-rows embed the member bounds that existed during reformulation, so those bounds
-cannot subsequently be changed on the transformed model. Set those bounds
-before reformulating, or change them on a retained native source and make a
-fresh reformulated model.
 
 ## Objectives
 
@@ -431,18 +219,9 @@ constraint!(m, name = format!("bal_{p}"), inflow[p] - outflow[p] == 0.0);
 
 ## Nonlinear expressions
 
-Nonlinear operations are first-class expression nodes, so they compose with
-linear terms and indexed aggregations. [`Expr`][Expr] provides:
-
-- powers: `pow`, `powi`, and `powf`,
-- roots and magnitude: `sqrt`, `cbrt`, and `abs`,
-- exponentials and logarithms: `exp`, `exp2`, `expm1`, `log`/`ln`, `log2`,
-  `log10`, and `log1p`/`ln_1p`,
-- trigonometric and inverse-trigonometric functions: `sin`, `cos`, `tan`,
-  `asin`, `acos`, and `atan`,
-- hyperbolic and inverse-hyperbolic functions: `sinh`, `cosh`, `tanh`,
-  `asinh`, `acosh`, and `atanh`,
-- binary `atan2`, `min`, and `max`.
+`Pow`, `Sin`, `Cos`, `Exp`, `Log`, `Abs`, and bilinear products are first-class,
+so you can write nonlinear algebra in the same expressions as linear terms.
+The model's kind is inferred from what you write.
 
 ```rust
 // Rosenbrock NLP
@@ -456,9 +235,6 @@ soc_constraint!(m3, cone, [x, y] <= t);
 
 // Transcendental utility (MINLP when any variable is integer/binary)
 objective!(m4, Max, sum!(u[i] * (1.0 + w[i] * x[i]).log() for i in items));
-
-// Functions and extrema compose as ordinary expressions.
-constraint!(m5, response, x.exp() + y.tanh() <= x.max(y) + 3.0);
 ```
 
 Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKind`][ModelKind]. Backends reject kinds they don't support. See [Printing & Debugging](../debugging/#checking-the-model-kind).
@@ -477,7 +253,6 @@ Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKi
 [dot]: https://docs.rs/oximo/latest/oximo/prelude/fn.dot.html
 [variable]: https://docs.rs/oximo/latest/oximo/prelude/macro.variable.html
 [constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.constraint.html
-[indicator_constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.indicator_constraint.html
 [set-macro]: https://docs.rs/oximo/latest/oximo/prelude/macro.set.html
 [oximo-expr]: https://docs.rs/oximo-expr/latest/oximo_expr/
 [soc_constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.soc_constraint.html

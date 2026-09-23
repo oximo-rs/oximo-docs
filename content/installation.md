@@ -12,7 +12,7 @@ provides the modeling layer and file I/O. Solver backends are opt-in.
 
 ## Start here
 
-oximo requires Rust **1.85** or later (edition 2024). Install Rust with
+oximo requires Rust **1.89** or later (edition 2024). Install Rust with
 [rustup](https://rustup.rs/) if you do not already have it.
 
 Create a project and add oximo:

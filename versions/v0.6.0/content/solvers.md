@@ -267,10 +267,6 @@ let result = Baron::new().solve(&m, &BaronOptions::default())?;
 want to route a model through GAMS-managed solvers (CPLEX, BARON, IPOPT,
 KNITRO, ...).
 
-For a model containing indicators, select COPT, CPLEX, Gurobi, SCIP, or Xpress
-explicitly in `GamsOptions`. The default solver selection is rejected because
-indicator handling is sub-solver-specific.
-
 ```toml
 [dependencies]
 oximo = { version = "0.6", features = ["gams"] }
@@ -280,17 +276,10 @@ oximo = { version = "0.6", features = ["gams"] }
 use oximo::prelude::*;
 use oximo::solvers::Gams;
 
-let result = Gams::new().solve(&m, &GamsOptions::default())?;
+let result = Gams.solve(&m, &GamsOptions::default())?;
 ```
 
 See [`GamsOptions`][GamsOptions] and the per-solver option structs in [`oximo::gams`][gams_mod] (`GamsCplexOptions`, `GamsBaronOptions`, `GamsIpoptOptions`, ...) for tuning the underlying solver.
-
-## Nonlinear operators
-
-A solver accepting `NLP` or `MINLP` does not imply that a backend can represent every
-nonlinear expression. oximo validates the expressions before solving
-and returns [`SolverError::UnsupportedNonlinearOperator`][SolverError] when a
-translation is unavailable.
 
 ## Next steps
 

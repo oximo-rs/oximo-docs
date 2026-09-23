@@ -85,7 +85,7 @@ objective!(m, Min, price * x);
 
 println!("{m}"); // min 4 x   ... params: price = 4
 
-m.set_param(price, 7.5)?;
+m.set_param(price, 7.5);
 println!("{m}"); // min 7.5 x ... params: price = 7.5
 ```
 
@@ -132,13 +132,13 @@ The report uses the model's own names, so `floor` and `ceil` point straight back
 
 ## When printing isn't enough
 
-| Error                         | Debugging steps                                                                            |
-| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| Error                         | Debugging steps                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
 | Backend rejects the model     | Check [`Model::kind()`][Model] against the [backend table](../solvers/#choosing-a-backend) |
 | Model is too big to read      | Export it with [`io::write_lp`](../io/) (if linear)                                        |
-| Solver returns nothing usable | Inspect `termination` and `primal_status`, not just `objective()`                          |
-| Model reports infeasible      | Compute an [IIS](#diagnosing-infeasibility) (if supported by backend)                      |
-| Need the backend's own logs   | Set `.verbose(true)` in the options, or read `result.raw_log`                              |
+| Solver returns nothing usable | Inspect `termination` and `primal_status`, not just `objective()`                        |
+| Model reports infeasible      | Compute an [IIS](#diagnosing-infeasibility) (if supported by backend)                    |
+| Need the backend's own logs   | Set `.verbose(true)` in the options, or read `result.raw_log`                            |
 
 After a solve, [`result.report(&m)`](../results/#reading-results) pairs the model with its solution in one print-out.
 
