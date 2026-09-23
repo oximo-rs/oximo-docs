@@ -30,13 +30,14 @@ Each returns a `String` you can log, hash, or feed into something else in memory
 
 ```rust
 use oximo::io;
+use std::fs::File;
 
-io::write_mps(&m, "model.mps")?;
-io::write_lp(&m, "model.lp")?;
-io::write_nl(&m, "model.nl")?;
+io::write_mps(&m, &mut File::create("model.mps")?)?;
+io::write_lp(&m, &mut File::create("model.lp")?)?;
+io::write_nl(&m, &mut File::create("model.nl")?)?;
 ```
 
-All three accept anything that implements `AsRef<Path>`.
+Each writer accepts anything that implements `std::io::Write`.
 
 ## Picking a format
 
@@ -55,9 +56,10 @@ The NL writer is the most configurable of the three. [`write_nl_with`][write_nl_
 
 ```rust
 use oximo::io::{NlFormat, WriteOptions, write_nl_with};
+use std::fs::File;
 
-let opts = WriteOptions::default().format(NlFormat::Ascii);
-write_nl_with(&m, "model.nl", &opts)?;
+let opts = WriteOptions { format: NlFormat::Ascii, ..Default::default() };
+write_nl_with(&m, &mut File::create("model.nl")?, &opts)?;
 ```
 
 [`write_nl_files`][write_nl_files] emits the `.nl` alongside its companion `.col`/`.row` name files, which is what most AMPL-compatible solvers expect when you want readable names in the solution.

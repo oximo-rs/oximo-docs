@@ -280,7 +280,7 @@ oximo = { version = "0.6", features = ["gams"] }
 use oximo::prelude::*;
 use oximo::solvers::Gams;
 
-let result = Gams.solve(&m, &GamsOptions::default())?;
+let result = Gams::new().solve(&m, &GamsOptions::default())?;
 ```
 
 See [`GamsOptions`][GamsOptions] and the per-solver option structs in [`oximo::gams`][gams_mod] (`GamsCplexOptions`, `GamsBaronOptions`, `GamsIpoptOptions`, ...) for tuning the underlying solver.
