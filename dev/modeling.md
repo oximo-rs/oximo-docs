@@ -1,0 +1,483 @@
++++
+title = "Modeling"
+description = "Variables, index sets, expressions, and constraints in oximo."
+weight = 3
+
+[extra]
+math = true
++++
+
+oximo's modeling layer lets you describe an optimization problem with idiomatic Rust.
+You write models using declarative macros that mirror algebraic notation, set algebra for indices, operator-overloaded expressions, and rule-style constraint generation.
+
+Everything on this page is re-exported from [`oximo::prelude`][prelude].
+
+## Variables
+
+Variables are the quantities a solver may choose. [`variable!`][variable]
+registers one on the model and binds a Rust variable of the same name, so the
+symbol is immediately usable in later expressions. Bounds are written the way
+you'd write them on paper.
+
+```rust
+use oximo::prelude::*;
+
+let m = Model::new("my_model");
+
+variable!(m, x >= 0.0);                 // continuous, x ≥ 0
+variable!(m, 0.0 <= y <= 10.0);         // continuous, 0 ≤ y ≤ 10
+variable!(m, z);                        // free, unbounded by default
+variable!(m, b, Bin);                   // binary {0, 1}   (also Binary)
+variable!(m, n >= 0.0, Int);            // general integer (also Integer)
+variable!(m, s <= 10.0, SemiCont(2.0)); // semicontinuous: 0 or in [2, 10]
+```
+
+Bounds, domain, warm start, and fixing can also be passed as keyword arguments after the name:
+
+```rust
+variable!(m, x, lb = 0.0, ub = 1.0);       // same as `0.0 <= x <= 1.0`
+variable!(m, n, lb = 0.0, domain = Int);   // keyword domain
+variable!(m, w, lb = 0.0, ub = 10.0, Int); // mixed with a positional domain token
+variable!(m, p, lb = 0.0, initial = 3.0);  // warm start (scalar only)
+variable!(m, q, fix = 5.0);                // fixed to 5.0 (scalar only)
+```
+
+| Domain token  | Meaning                           |
+| ------------- | --------------------------------- |
+| _(none)_      | Continuous                        |
+| `Bin`         | Binary `{0, 1}` (alias `Binary`)  |
+| `Int`         | General integer (alias `Integer`) |
+| `SemiCont(t)` | Zero, or continuous in `[t, ub]`  |
+| `SemiInt(t)`  | Zero, or integer in `[t, ub]`     |
+
+## Parameters
+
+A parameter is data that can change while the model structure stays fixed. It
+stays _symbolic_ in the model, so `param!` lets you build once and re-bind its
+value between solves without rebuilding variables, constraints, or the
+objective. This is useful for scenario sweeps.
+
+```rust
+param!(m, p1 = 0.0);
+
+variable!(m, x1 >= 0.0);
+objective!(m, Max, p1 * x1);
+
+for price in [1.0, 1.6, 2.0] {
+    p1.set_param_value(price);
+    let result = Highs.solve(&m, &HighsOptions::default())?;
+    println!("{price} -> {:?}", result.objective());
+}
+```
+
+A parameter times a variable stays linear, so the model kind is unchanged by re-binding.
+
+For parameter sweeps, it is recommended to use a `Persistent` solver if available. See [Solvers](../solvers/) for details.
+
+## Index sets
+
+A [`Set`][Set] is the modeling-layer container for an ordered, finite index set
+over integers, strings, or tuples. Use one to name the domain of an indexed
+variable, a generated constraint, or a sum.
+
+Most domains need no explicit [`Set`][Set], since an integer range is already
+a domain (`x[i in 0..5]`, `sum!(… for i in 0..n)`).
+Reach for [`Set`][Set] when keys are strings, tuples, sparse, or a
+subset reused across statements.
+
+The [`set!`][set-macro] macro binds a named set. A plain right side is normalized to an owned set, while a `pat in domain [if cond]` comprehension builds and optionally filters one.
+
+```rust
+use oximo::prelude::*;
+
+let plants = Set::strings(["seattle", "san-diego"]);
+
+set!(items = 0..5);             // range normalized to Set<usize>
+set!(routes = plants * plants); // Cartesian product
+
+// Comprehension: product domain + by-value `if`. These two are equivalent.
+set!(arcs = (p, q) in &plants * &plants if p != q); // single tuple pattern
+set!(arcs = i in plants, j in plants if i != j);    // multi-bind product
+
+// The typed filter is also a Set method (the receiver pins the key type):
+let diag = (&plants * &plants).filter_typed(|(p, q)| p == q);
+
+// Sparse / string leaf sets:
+let sparse = Set::from_ints([0, 2, 4, 8]);
+```
+
+## Indexed variables
+
+Many optimization quantities vary by period, product, or route. The indexed
+form, `variable!(m, x[k in set])`, registers one scalar per key and auto-names
+it like `x[seattle,nyc]`. Bounds apply uniformly by default. A multi-index
+family ranges over a Cartesian product.
+
+```rust
+let m = Model::new("transport");
+
+variable!(m, x[r in routes] >= 0.0);        // one var per route
+variable!(m, y[k in items] >= 0.0, Int);    // integer family
+variable!(m, z[a in rows, b in cols], Bin); // multi-index (Cartesian product)
+
+// Scalar lookup: any type that converts to IndexKey works.
+let e1 = x[("seattle", "nyc")];
+let e2 = z[a, b];
+
+// Per-key bounds may reference the index.
+variable!(m, 0.0 <= w[(p, q) in routes] <= capacity_for(&p, &q));
+variable!(m, v[k in items], lb = 0.0, ub = cap[k]);
+
+// Filtered family: keep only matching keys (no trivial elements built).
+variable!(m, d[(i, j) in rc if i == j] >= 0.0);
+```
+
+`x[key]` returns the [`Expr`][Expr] for that element, ready to drop into a constraint or objective.
+
+## Expressions
+
+[`Expr`][Expr]s are built with standard Rust operators. Scalars are `f64`.
+
+```rust
+let lhs = x + 2.0 * y - 3.0 * z;
+let rhs = 4.0 * x + 5.0;
+```
+
+Behind the scenes oximo uses arena-allocated expression trees ([`oximo-expr`][oximo-expr]), so combining large [`Expr`][Expr]s stays cheap.
+
+## Aggregating over sets
+
+When an expression has one term per key, use `sum!` instead of building a Rust
+loop. It produces one [`Expr`][Expr] that can go anywhere an expression is
+accepted.
+
+`sum!(body for k in set)` reads as \\(\sum_{k \in \text{set}} \text{body}\\).
+The `min!` and `max!` macros use the same domains, Cartesian products, and
+filters to build one flattened minimum or maximum expression. Their domains
+must contain at least one selected key.
+
+Empty sums are handled as the additive identity when the model is known. Sums
+inside `constraint!`, `objective!`, and `soc_constraint!` inherit that macro's
+model automatically, including nested sums and filtered domains:
+
+```rust
+// If maybe_empty has no selected keys, this contributes the model's zero.
+constraint!(m, balance, sum!(x[i] for i in maybe_empty) == 0.0);
+
+// Use the explicit model form for a standalone sum.
+let total = sum!(m, x[i] for i in maybe_empty);
+```
+
+The explicit `sum!(model, ...)` form also ensures that every selected term
+belongs to that model. An unanchored standalone sum still needs at least one
+term, because it has no model-owned expression context from which to construct
+the empty result.
+
+```rust
+// Single sum: sum over i in items of weights[i] * x[i]
+constraint!(m, cap, sum!(weights[i] * x[i] for i in items) <= capacity);
+
+// Double sum, flat: sum over (p, q) in plants x markets
+let total_cost = sum!(c[p, q] * x[p, q] for p in plants, q in markets);
+
+// Filtered sum.
+let active = sum!(x[i] for i in 0..n if online[i]);
+
+// Indexed extrema, with the same domain and filter syntax.
+let least_slack = min!(capacity[i] - x[i] for i in items);
+let peak_load = max!(load[t] for t in periods if online[t]);
+```
+
+For the plain dot-product case there is also [`dot`][dot].
+
+## Constraints
+
+Constraints define which combinations of variable values are allowed. Give each
+one a stable name for readable solver output and diagnostics, then use
+[`constraint!`][constraint] with a relation written as `<=`, `>=`, or `==`.
+A two-sided range becomes a single constraint.
+
+```rust
+constraint!(m, cap, 2.0 * x + 3.0 * y <= 100.0);
+constraint!(m, demand, x >= 5.0);
+constraint!(m, balance, x - y == 0.0);
+constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
+```
+
+For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
+
+## Indicator constraints
+
+The [`indicator_constraint!`][indicator_constraint] macro applies an affine
+relation only when a binary trigger has a selected value. The implication is
+one-way: when the trigger has the other value, the relation is not enforced.
+
+```rust
+variable!(m, enabled, Binary);
+variable!(m, -10.0 <= x <= 20.0);
+
+indicator_constraint!(m, capacity, enabled == 1 => x <= 8.0);
+indicator_constraint!(m, shutdown, enabled == 0 => x == 0.0);
+indicator_constraint!(m, operating_band, enabled == 1 => -2.0 <= x <= 4.0);
+```
+
+The trigger must be a bare binary variable from the same model, its selected
+value must be the literal `0` or `1`, and the consequent must be affine. The
+constraint does not imply the reverse direction: satisfying `x <= 8.0` does
+not force `enabled` to equal `1`.
+
+Indicator constraints support the same indexed-family and computed-name forms
+as ordinary constraints:
+
+```rust
+variable!(m, enabled[t in periods], Binary);
+variable!(m, production[t in periods] >= 0.0);
+
+indicator_constraint!(
+    m,
+    capacity[t in periods if available[t]],
+    enabled[t] == 1 => production[t] <= capacity_at(t),
+);
+
+let row_name = "shutdown_final";
+indicator_constraint!(
+    m,
+    name = row_name,
+    enabled[last] == 0 => production[last] == 0.0,
+);
+```
+
+Gurobi, MOSEK, and SCIP consume indicators natively. GAMS supports them when an
+explicit COPT, CPLEX, Gurobi, SCIP, or Xpress sub-solver is selected. Other
+backends return `SolverError::UnsupportedIndicator` while active indicators
+remain in the model. To use one of those backends, explicitly replace the
+indicators with linear Big-M rows:
+
+```rust
+use oximo::prelude::*;
+use oximo::{HighsOptions, solvers::Highs};
+
+let m = Model::new("reformulated_indicators");
+variable!(m, produce, Binary);
+variable!(m, 0.0 <= quantity <= 10.0);
+indicator_constraint!(m, capacity, produce == 1 => quantity <= 7.0);
+indicator_constraint!(m, shutdown, produce == 0 => quantity == 0.0);
+objective!(m, Max, quantity + 2.0 * produce);
+
+let artifacts = m.reformulate_indicators(IndicatorReformulationOptions::default())?;
+let result = Highs.solve(&m, &HighsOptions::default())?;
+```
+
+`Model::reformulate_indicators` changes the model in place without cloning it
+and returns artifacts containing the generated constraint IDs. To retain the
+native-indicator model, use `m.to_reformulated_indicator_model(options)` to make
+an independent transformed model. Both forms preserve source indicator IDs,
+mark the sources inactive, and record generated constraint IDs in
+`indicator_reformulations()`. They add no variables. For one indicator, use its
+handle's `reformulate(options)` or `to_reformulated_model(options)` method.
+
+Each finite side of an indicator gets a Big-M row. oximo derives M from the
+body's affine coefficients and variable bounds, including the zero option for
+semi-continuous and semi-integer variables. For an unbounded side, pass a
+positive, finite fallback M to the in-place call instead:
+
+```rust
+let options = IndicatorReformulationOptions::default().with_fallback_big_m(1.0e6);
+m.reformulate_indicators(options)?;
+```
+
+## Special ordered sets (SOS) constraints
+
+SOS1 and SOS2 constraints are native special ordered sets. SOS1 allows at most
+one nonzero member. SOS2 allows at most two adjacent nonzero members according
+to their ordering weights.
+
+Use the short form when member order itself defines the weights. It assigns
+consecutive weights `1.0`, `2.0`, and so on:
+
+```rust
+sos_constraint!(m, one_choice, SOS1, [x, y, z]);
+sos_constraint!(m, adjacent_choice, SOS2, [x, y, z]);
+```
+
+Use explicit `(variable, weight)` pairs when the ordering values are meaningful
+or nonuniform:
+
+```rust
+sos_constraint!(m, weighted_choice, SOS2, [
+    (x, 10.0),
+    (y, 20.0),
+    (z, 50.0),
+]);
+```
+
+### Indexed SOS families
+
+The indexed form creates one SOS constraint for every key in the binder. The
+index domain must be written explicitly; the macro cannot infer it from an
+`IndexedVar`:
+
+```rust
+variable!(m, x[i in 0..n] >= 0.0);
+variable!(m, y[i in 0..n] >= 0.0);
+variable!(m, z[i in 0..n] >= 0.0);
+
+sos_constraint!(m, choice[i in 0..n], SOS1, [x[i], y[i], z[i]]);
+```
+
+This registers `choice[0]`, `choice[1]`, and so on, with positional weights
+`1.0`, `2.0`, and `3.0` in each set. Explicit weights work in the same form:
+
+```rust
+sos_constraint!(m, curve[i in 0..n], SOS2, [
+    (x[i], 1.0),
+    (y[i], 2.0),
+    (z[i], 3.0),
+]);
+```
+
+For one SOS over a dynamically assembled collection, use the method API:
+
+```rust
+let members = vec![x, y, z];
+m.add_sos_constraint_auto_weights("one_choice", SosType::Sos1, members);
+```
+
+Use `Model::add_sos_constraint` instead when supplying explicit weights from a
+runtime iterator.
+
+Backends with native SOS support, such as Gurobi and SCIP, consume these constraints
+directly. Other backends reject a model while it still contains active SOS
+constraints. oximo never changes the formulation implicitly, but you can
+explicitly replace every active SOS with a portable MILP formulation before
+using a backend such as HiGHS:
+
+```rust
+use oximo::prelude::*;
+use oximo::{HighsOptions, solvers::Highs};
+
+let m = Model::new("reformulated_sos");
+variable!(m, 0.0 <= x <= 10.0);
+variable!(m, 0.0 <= y <= 10.0);
+variable!(m, 0.0 <= z <= 10.0);
+sos_constraint!(m, choice, SOS1, [x, y, z]);
+objective!(m, Max, x + 2.0 * y + 3.0 * z);
+
+// Uses each member's finite bounds as its Big-M values. The source SOS is
+// retained as inactive provenance, while binary variables and linear rows are
+// appended to `m`.
+let artifacts = m.reformulate_sos(SosReformulationOptions::default())?;
+let result = Highs.solve(&m, &HighsOptions::default())?;
+```
+
+`Model::reformulate_sos` modifies the model in place and returns the generated
+variable and constraint IDs. To retain the native-SOS model—for example, to
+solve it with Gurobi as well—produce an independent transformed model instead:
+
+```rust
+let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
+let result = Highs.solve(&reformulated, &HighsOptions::default())?;
+```
+
+A member needs finite bounds in every direction in which it can be nonzero. If
+that is not available, pass a positive finite fallback to the in-place call
+instead:
+
+```rust
+let options = SosReformulationOptions::default().with_fallback_big_m(1.0e6);
+m.reformulate_sos(options)?;
+```
+
+A fallback that is too small truncates the feasible region. Generated Big-M
+rows embed the member bounds that existed during reformulation, so those bounds
+cannot subsequently be changed on the transformed model. Set those bounds
+before reformulating, or change them on a retained native source and make a
+fresh reformulated model.
+
+## Objectives
+
+A [`Model`][Model] has exactly one objective function, the quantity it minimizes or
+maximizes among feasible solutions. Add it after defining the expressions it
+uses, with the sense written next to the model.
+
+```rust
+objective!(m1, Min, 3.0 * x + 5.0 * y);
+objective!(m2, Max, x + 2.0 * y); // also Minimize/min, Maximize/max
+```
+
+If you have a feasibility problem, use the `feas`/`Feasibility` sense.
+
+## Rule-style constraints
+
+Use the indexed form of [`constraint!`][constraint] when the same rule applies
+across a set. It emits one constraint per key, auto-named like
+`supply[seattle]`, without an explicit Rust loop. A trailing `if` filters the
+keys, and `name = expr` gives a computed run-time name.
+
+```rust
+// Scalar set: one constraint per period.
+let periods = Set::range(0..T);
+constraint!(m, setup[t in periods], x[t] <= capacity * s[t]);
+
+// Tuple set + inner sum builds the LHS expression (key types inferred).
+constraint!(m, supply[p in plants], sum!(x[p, q] for q in markets) <= supply_of(&p));
+
+// Filtered family: only the keys passing the guard are built.
+constraint!(m, diag[(i, j) in arcs if i == j], x[i, j] <= 1.0);
+
+// Computed run-time name.
+constraint!(m, name = format!("bal_{p}"), inflow[p] - outflow[p] == 0.0);
+```
+
+## Nonlinear expressions
+
+Nonlinear operations are first-class expression nodes, so they compose with
+linear terms and indexed aggregations. [`Expr`][Expr] provides:
+
+- powers: `pow`, `powi`, and `powf`,
+- roots and magnitude: `sqrt`, `cbrt`, and `abs`,
+- exponentials and logarithms: `exp`, `exp2`, `expm1`, `log`/`ln`, `log2`,
+  `log10`, and `log1p`/`ln_1p`,
+- trigonometric and inverse-trigonometric functions: `sin`, `cos`, `tan`,
+  `asin`, `acos`, and `atan`,
+- hyperbolic and inverse-hyperbolic functions: `sinh`, `cosh`, `tanh`,
+  `asinh`, `acosh`, and `atanh`,
+- binary `atan2`, `min`, and `max`.
+
+```rust
+// Rosenbrock NLP
+objective!(m1, Min, (1.0 - x).powi(2) + 100.0 * (y - x.powi(2)).powi(2));
+
+// Quadratic constraint (model kind: QCP)
+constraint!(m2, disk, x.powi(2) + y.powi(2) <= 1.0);
+
+// Second-order cone ||(x, y)|| <= t (model kind: SOCP)
+soc_constraint!(m3, cone, [x, y] <= t);
+
+// Transcendental utility (MINLP when any variable is integer/binary)
+objective!(m4, Max, sum!(u[i] * (1.0 + w[i] * x[i]).log() for i in items));
+
+// Functions and extrema compose as ordinary expressions.
+constraint!(m5, response, x.exp() + y.tanh() <= x.max(y) + 3.0);
+```
+
+Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKind`][ModelKind]. Backends reject kinds they don't support. See [Printing & Debugging](../debugging/#checking-the-model-kind).
+
+## Next steps
+
+- [Solvers](../solvers/): pick a backend, set options, read the solution
+- [Printing & Debugging](../debugging/): print a model as algebra and check what it actually says
+- [I/O](../io/): export your model to MPS, LP, or NL
+
+[prelude]: https://docs.rs/oximo/latest/oximo/prelude/index.html
+[Model]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html
+[ModelKind]: https://docs.rs/oximo/latest/oximo/prelude/enum.ModelKind.html
+[Set]: https://docs.rs/oximo/latest/oximo/prelude/struct.Set.html
+[Expr]: https://docs.rs/oximo/latest/oximo/prelude/struct.Expr.html
+[dot]: https://docs.rs/oximo/latest/oximo/prelude/fn.dot.html
+[variable]: https://docs.rs/oximo/latest/oximo/prelude/macro.variable.html
+[constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.constraint.html
+[indicator_constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.indicator_constraint.html
+[set-macro]: https://docs.rs/oximo/latest/oximo/prelude/macro.set.html
+[oximo-expr]: https://docs.rs/oximo-expr/latest/oximo_expr/
+[soc_constraint]: https://docs.rs/oximo/latest/oximo/prelude/macro.soc_constraint.html
