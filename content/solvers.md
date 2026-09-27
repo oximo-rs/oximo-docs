@@ -28,7 +28,7 @@ Each row is what [`Solver::supports`][Solver] accepts for that backend, against 
 | [`Clarabel`][Clarabel] | **✓** |   —   | **✓** |   —   |   —   |   —   | **✓** |   —    |   —   |   —   |
 | [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   | **✓** |   —    | **✓** |   —   |
 | [`Gurobi`][Gurobi]     | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
-| `Mosek`                | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —   |   —   |
+| [`Mosek`][Mosek]      | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —   |   —   |
 | [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
 | [`Gams`][Gams]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
 
@@ -46,7 +46,7 @@ Deployment cost and diagnostic/solve capability per backend.
 | [`Clarabel`][Clarabel] |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
 | [`Pounce`][Pounce]     |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |    —     |
 | [`Gurobi`][Gurobi]     |    ✓    |        ✓         |   **—**    |      **✓**       | **✓** |   **✓**    |   **✓**   | **✓** |  **✓**   |
-| `Mosek`                |    ✓    |        ✓         |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
+| [`Mosek`][Mosek]      |    ✓    |        ✓         |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
 | [`Baron`][Baron]       |    ✓    |        ✓         |   **—**    |        —         | **✓** |     —      |   **✓**   | **✓** |  **✓**   |
 | [`Gams`][Gams]         |    ✓    |        ✓         |   **—**    |        —         |   —   |     —      |  **✓**¶   | **✓** |  **✓**   |
 
@@ -310,6 +310,7 @@ translation is unavailable.
 [Pounce]: https://docs.rs/oximo-pounce/latest/oximo_pounce/struct.Pounce.html
 [Gurobi]: https://docs.rs/oximo-gurobi/latest/oximo_gurobi/struct.Gurobi.html
 [GurobiOptions]: https://docs.rs/oximo-gurobi/latest/oximo_gurobi/struct.GurobiOptions.html
+[Mosek]: https://docs.rs/oximo-mosek/latest/oximo_mosek/struct.Mosek.html
 [Baron]: https://docs.rs/oximo-baron/latest/oximo_baron/struct.Baron.html
 [Gams]: https://docs.rs/oximo-gams/latest/oximo_gams/struct.Gams.html
 [GamsOptions]: https://docs.rs/oximo-gams/latest/oximo_gams/struct.GamsOptions.html
