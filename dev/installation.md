@@ -53,6 +53,21 @@ cargo add oximo --features clarabel
 Use this path when you want a solver without a C compiler or external solver
 installation. Clarabel does not solve mixed-integer models.
 
+### Clarabel SDP
+
+Semidefinite programming (SDP) support is available by choosing one BLAS/LAPACK provider:
+
+| Feature                   | Provider         | Typical platform                                  |
+| ------------------------- | ---------------- | ------------------------------------------------- |
+| `clarabel-sdp-openblas`   | OpenBLAS         | Linux; source builds need C and Fortran compilers |
+| `clarabel-sdp-mkl`        | Intel MKL        | Windows or Linux                                  |
+| `clarabel-sdp-accelerate` | Apple Accelerate | macOS                                             |
+
+The bare `clarabel-sdp` feature enables SDP when your application supplies BLAS/LAPACK linkage.
+On Windows, the OpenBLAS feature uses a system installation.
+
+See [Modeling > Semidefinite constraints](../modeling/#semidefinite-constraints) for more information.
+
 ## Other backends
 
 The [Solvers][Solvers] guide compares model-kind support and summarizes the
@@ -82,20 +97,24 @@ RUSTFLAGS="-Zautodiff=Enable" cargo +nightly build --profile enzyme --features p
 
 ## Feature reference
 
-| Feature         | Included by default | Purpose                                                               |
-| --------------- | :-----------------: | --------------------------------------------------------------------- |
-| `highs`         |         no          | Bundled [`Highs`][Highs] solver for LP, MILP, and QP.                 |
-| `io`            |         yes         | MPS, LP, and NL file writers.                                         |
-| `baron`         |         no          | [`Baron`][Baron] global-optimization backend.                         |
-| `clarabel`      |         no          | Pure-Rust [`Clarabel`][Clarabel] solver for LP, QP, and SOCP.         |
-| `clarabel-faer` |         no          | Use Clarabel's `faer` linear-algebra backend.                         |
-| `gurobi`        |         no          | [`Gurobi`][Gurobi] backend.                                           |
-| `gams`          |         no          | [`Gams`][Gams] bridge.                                                |
-| `pounce`        |         no          | Pure-Rust [`Pounce`][Pounce] solver for continuous nonlinear models.  |
-| `pounce-enzyme` |         no          | Exact Enzyme derivatives for POUNCE; requires nightly Rust.           |
-| `scip`          |         no          | Bundled [`Scip`][Scip] solver; downloads SCIP binaries at build time. |
-| `scip-system`   |         no          | SCIP backend using an existing installation and libclang.             |
-| `mosek`         |         no          | [`Mosek`][Mosek] backend for MOSEK 11.2.                              |
+| Feature                   | Included by default | Purpose                                                               |
+| ------------------------- | :-----------------: | --------------------------------------------------------------------- |
+| `io`                      |         yes         | MPS, LP, and NL file readers and writers.                             |
+| `highs`                   |         no          | Bundled [`Highs`][Highs] solver for LP, MILP, and QP.                 |
+| `baron`                   |         no          | [`Baron`][Baron] global-optimization backend.                         |
+| `clarabel`                |         no          | Pure-Rust [`Clarabel`][Clarabel] solver for LP, QP, and SOCP.         |
+| `clarabel-faer`           |         no          | Use Clarabel's `faer` linear-algebra backend.                         |
+| `clarabel-sdp`            |         no          | [`Clarabel`][Clarabel] SDP with supplied BLAS/LAPACK linkage.         |
+| `clarabel-sdp-openblas`   |         no          | [`Clarabel`][Clarabel] SDP with OpenBLAS.                             |
+| `clarabel-sdp-mkl`        |         no          | [`Clarabel`][Clarabel] SDP with Intel MKL.                            |
+| `clarabel-sdp-accelerate` |         no          | [`Clarabel`][Clarabel] SDP with Apple Accelerate.                     |
+| `gurobi`                  |         no          | [`Gurobi`][Gurobi] backend.                                           |
+| `gams`                    |         no          | [`Gams`][Gams] bridge.                                                |
+| `pounce`                  |         no          | Pure-Rust [`Pounce`][Pounce] solver for continuous nonlinear models.  |
+| `pounce-enzyme`           |         no          | Exact Enzyme derivatives for POUNCE; requires nightly Rust.           |
+| `scip`                    |         no          | Bundled [`Scip`][Scip] solver. Downloads SCIP binaries at build time. |
+| `scip-system`             |         no          | [`Scip`][Scip] backend using an existing installation and libclang.   |
+| `mosek`                   |         no          | [`Mosek`][Mosek] backend for MOSEK 11.2.                              |
 
 [Highs]: https://docs.rs/oximo/latest/oximo/solvers/struct.Highs.html
 [Clarabel]: https://docs.rs/oximo-clarabel/latest/oximo_clarabel/struct.Clarabel.html

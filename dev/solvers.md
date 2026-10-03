@@ -22,18 +22,20 @@ To determine what backend to use, consider what each backend _solves_ (by model 
 
 Each row is what [`Solver::supports`][Solver] accepts for that backend, against every [`ModelKind`][ModelKind]:
 
-| Backend                |  LP   | MILP  |  QP   | MIQP  |  QCP  | MIQCP | SOCP  | MISOCP |  NLP  | MINLP |
-| ---------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :----: | :---: | :---: |
-| [`Highs`][Highs]       | **✓** | **✓** | **✓** |   —   |   —   |   —   |   —   |   —    |   —   |   —   |
-| [`Clarabel`][Clarabel] | **✓** |   —   | **✓** |   —   |   —   |   —   | **✓** |   —    |   —   |   —   |
-| [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   | **✓** |   —    | **✓** |   —   |
-| [`Scip`][Scip]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
-| [`Gurobi`][Gurobi]     | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
-| [`Mosek`][Mosek]      | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —   |   —   |
-| [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
-| [`Gams`][Gams]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
+| Backend | LP | MILP | QP | MIQP | QCP | MIQCP | SOCP | MISOCP | SDP | MISDP | NLP | MINLP |
+| ------- | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
+| [`Highs`][Highs] | **✓** | **✓** | **✓** | — | — | — | — | — | — | — | — | — |
+| [`Clarabel`][Clarabel] | **✓** | — | **✓** | — | — | — | **✓** | — | **✓**¹ | — | — | — |
+| [`Pounce`][Pounce] | **✓** | — | **✓** | — | **✓** | — | **✓** | — | — | — | **✓** | — |
+| [`Scip`][Scip] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
+| [`Gurobi`][Gurobi] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
+| [`Mosek`][Mosek] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | — |
+| [`Baron`][Baron] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
+| [`Gams`][Gams] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
 
 `Gams` accepts every kind at the oximo layer, but the actual coverage is the GAMS sub-solver's. Pick one that handles the kind you emit.
+
+**¹** Clarabel requires an [SDP feature and BLAS/LAPACK provider](../installation/#clarabel-sdp).
 
 ### Requirements & capabilities
 
@@ -69,6 +71,10 @@ Footnotes:
 - **¶** GAMS's pool and duals come from the underlying sub-solver's GDX output (e.g. CPLEX `solnpool`).
 - **‡** SCIP returns LP duals and reduced costs only when it can certify a complete original-model LP solution.
 
+Clarabel's build requirements above describe the base `clarabel` feature.
+SDP adds native BLAS/LAPACK dependencies. Compiler and installation requirements
+depend on the [selected provider](../installation/#clarabel-sdp).
+
 A backend rejects model kinds it can't handle, so check [`Model::kind()`][Model] if a solve returns [`SolverError::UnsupportedKind`][SolverError].
 
 ## HiGHS
@@ -102,7 +108,9 @@ Common [`HighsOptions`][HighsOptions]:
 
 ## Clarabel
 
-[`Clarabel`][Clarabel] is a pure-Rust conic interior-point solver. No install, no license. It handles continuous LP, QP (convex quadratic objectives), and SOCP models.
+[`Clarabel`][Clarabel] is a conic interior-point solver. The base `clarabel`
+feature is pure Rust, requires no external solver installation or license,
+and handles continuous LP, QP (convex quadratic objectives), and SOCP models.
 
 ```rust
 use oximo::prelude::*;
@@ -110,6 +118,23 @@ use oximo::solvers::Clarabel;
 
 let result = Clarabel.solve(&m, &ClarabelOptions::default())?;
 ```
+
+### Semidefinite models
+
+Enable `clarabel-sdp` with BLAS/LAPACK linkage, or select a provider feature
+such as `clarabel-sdp-mkl`; see [Installation](../installation/#clarabel-sdp).
+This adds continuous SDP with real symmetric affine PSD blocks, linear rows,
+and SOC constraints. Objectives may be affine or convex quadratic when
+minimizing (concave quadratic when maximizing). General quadratic constraints,
+nonlinear expressions, and integer variables are unsupported on this path.
+
+`Clarabel.persistent()` updates compatible numerical data between solves.
+Changes to cone structure rebuild the solver. Chordal decomposition,
+presolve, or dropped structural zeros can also prevent a native update, in
+which case oximo rebuilds automatically.
+
+Primal and PSD dual matrices are available through the
+[matrix result accessors](../results/#psd-matrix-results).
 
 ## POUNCE
 
@@ -255,8 +280,8 @@ Common [`GurobiOptions`][GurobiOptions]:
 
 ## MOSEK
 
-`Mosek` supports LP, MILP, convex QP/MIQP, convex QCP/MIQCP, and
-SOCP/MISOCP models. It requires the `mosek` Cargo feature, a licensed MOSEK
+`Mosek` supports LP, MILP, convex QP/MIQP, convex QCP/MIQCP,
+SOCP/MISOCP, and continuous SDP models. It requires the `mosek` Cargo feature, a licensed MOSEK
 11.2 installation, and `MOSEK_BINDIR_112` when MOSEK is outside its default
 location. MOSEK validates the convexity of quadratic data. The backend links
 through the [`mosek`](https://crates.io/crates/mosek) crate.
@@ -287,6 +312,18 @@ let result = Mosek.solve(&m, &MosekOptions::default()
 `MosekOptions` provides builders for every MOSEK 11.2 parameter. Universal
 options such as `time_limit`, `threads`, and `verbose` are applied first.
 MOSEK-specific parameter builders are then applied in call order.
+
+### Semidefinite models
+
+The development backend supports real symmetric affine PSD blocks through the
+existing `mosek` feature. The current SDP path requires an affine objective and
+accepts linear and SOC constraints alongside PSD blocks. Quadratic objectives
+with PSD blocks and mixed integer SDP are rejected; use `supports_model(&m)`
+before selecting this backend.
+
+`Mosek.persistent()` currently rebuilds SDP tasks on each solve, including
+parameter-only changes. Primal and PSD dual matrices use the same
+[result accessors and conventions](../results/#psd-matrix-results) as Clarabel.
 
 ## BARON
 

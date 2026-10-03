@@ -157,7 +157,7 @@ filters to build one flattened minimum or maximum expression. Their domains
 must contain at least one selected key.
 
 Empty sums are handled as the additive identity when the model is known. Sums
-inside `constraint!`, `objective!`, and `soc_constraint!` inherit that macro's
+inside `constraint!`, `objective!`, `soc_constraint!`, and `psd_constraint!` inherit that macro's
 model automatically, including nested sums and filtered domains:
 
 ```rust
@@ -205,6 +205,64 @@ constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 ```
 
 For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
+
+## Semidefinite constraints
+
+A positive semidefinite (PSD) constraint requires every eigenvalue of a real
+symmetric matrix to be nonnegative. Use `symmetric_variable!` to declare its
+entries and `psd_constraint!` to require the matrix to be PSD. A symmetric
+variable declaration alone creates free continuous variables and it does not
+impose positivity or bounds.
+
+### Symmetric matrices
+
+`symmetric_variable!(m, X[n])` returns a `SymmetricMatrix<Expr<Affine>>` with
+`n * (n + 1) / 2` independent variables. Mirrored entries refer to the same
+variable. Use `X[(i, j)]` in Rust expressions, while modeling macros also accept
+the `X[i, j]` notation. The side dimension must be positive.
+
+For numeric matrix data, dense rows avoid triangle ordering:
+
+```rust
+let c = SymmetricMatrix::try_from_rows([[2.0, 1.0], [1.0, 2.0]])?;
+let identity = SymmetricMatrix::<f64>::identity(2);
+println!("C = {c}");
+println!("I = {identity}");
+```
+
+Matrices support addition, subtraction, negation, scalar multiplication,
+`trace()`, and `frobenius(&other)`. `frobenius` computes the full matrix inner
+product, counting each stored off-diagonal product twice. Matrices combined by
+arithmetic must have matching dimensions.
+
+### Affine matrix inequalities
+
+A PSD constraint can contain any symmetric matrix of constant or affine
+entries, including symbolic parameters.
+For example, minimizing `t` subject to `t I - C` being PSD gives the largest
+eigenvalue of `C`. The eigenvalues of `t I - C` are `t` minus those of `C`, so
+PSD membership requires `t` to be at least the largest eigenvalue.
+
+Quadratic and nonlinear matrix entries are rejected. The current SDP support is
+limited to real symmetric matrices.
+
+### Names, families, and activity
+
+PSD declarations support named, anonymous, computed-name, indexed, and filtered
+forms. For a symmetric matrix variable `X`:
+
+```rust
+let identity = SymmetricMatrix::<f64>::identity(2);
+let shifts = [0.0, 1.0, 2.0];
+psd_constraint!(m, shifted[i in 0..shifts.len()], &X + shifts[i] * &identity);
+let extra = psd_constraint!(m, name = "extra positivity".to_owned(), &X);
+m.set_psd_active(extra, false)?;
+```
+
+A scalar declaration returns a `PsdConstraintHandle`. Retrieve a registered
+handle with `m.psd_constraint_handle("shifted[0]")`. PSD constraints have their
+own registry, separate from scalar and SOC constraints. Inactive PSD blocks
+are excluded from solving and model-kind classification.
 
 ## Indicator constraints
 
