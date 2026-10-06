@@ -521,6 +521,43 @@ constraint!(m5, response, x.exp() + y.tanh() <= x.max(y) + 3.0);
 
 Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKind`][ModelKind]. Backends reject kinds they don't support. See [Printing & Debugging](../debugging/#checking-the-model-kind).
 
+## Incremental affine construction
+
+Use `model.affine_builder()` to construct an affine expression by adding
+terms incrementally, without creating intermediate addition nodes. The
+builder accepts constant or affine terms (weighted sums of variables plus a
+constant) from the same model.
+
+```rust
+use oximo::prelude::*;
+
+let m = Model::new("incremental terms");
+variable!(m, x[i in 0..3]);
+
+let mut builder = m.affine_builder();
+for (i, weight) in [2.0, 3.0, 4.0].into_iter().enumerate() {
+    builder.add_term(weight, x[i]);
+}
+builder.add_constant(5.0);
+let lhs = builder.build();
+constraint!(m, capacity, lhs <= 100.0);
+```
+
+`build()` returns an affine expression, resets the pending terms and constant,
+and retains scratch capacity for reuse in the next row. Numeric terms are
+combined into a compact expression. Parameter-dependent terms stay symbolic.
+
+Combining affine terms can change how floating-point additions are grouped.
+Mathematically equivalent constructions may therefore produce different
+coefficients, especially when large terms cancel.
+
+For repeated contributions to a coefficient with large magnitude differences,
+choose `model.compensated_affine_builder()`. Supplying the original weights
+`[1e16, 1.0, -1e16]` for the same variable retains the coefficient `1`, while
+ordinary floating-point accumulation gives `0`. Compensated summation is
+explicit and uses additional arithmetic and scratch storage. It cannot recover
+rounding already present in an input expression.
+
 ## Next steps
 
 - [Solvers](../solvers/): pick a backend, set options, read the solution
