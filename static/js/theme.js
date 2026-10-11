@@ -27,6 +27,7 @@
     const effective = getEffectiveTheme(theme);
     document.documentElement.setAttribute('data-theme', effective);
     document.documentElement.setAttribute('data-theme-setting', theme);
+    document.documentElement.style.colorScheme = effective;
   }
 
   // Save theme preference
