@@ -14,6 +14,13 @@ let result = Backend.solve(&model, &BackendOptions::default())?;
 
 `result` is a [`SolverResult`][SolverResult], the same struct regardless of backend.
 
+Every solve captures the parameters used to translate or update the native
+problem. A persistent solve refreshes this snapshot even when only an unused
+parameter changes and the native problem is reused. Earlier results keep their
+own snapshots, and a solve with no solution still retains its captured
+parameters. See [Results > Parameter snapshots and scenario queries](../results/#parameter-snapshots-and-scenario-queries)
+for queries using saved or current parameter values.
+
 ## Choosing a backend
 
 To determine what backend to use, consider what each backend _solves_ (by model kind) and what it _costs and offers_ (license, install, diagnostics). Each backend's Cargo feature flag is named in its own section below.
@@ -22,16 +29,16 @@ To determine what backend to use, consider what each backend _solves_ (by model 
 
 Each row is what [`Solver::supports`][Solver] accepts for that backend, against every [`ModelKind`][ModelKind]:
 
-| Backend | LP | MILP | QP | MIQP | QCP | MIQCP | SOCP | MISOCP | SDP | MISDP | NLP | MINLP |
-| ------- | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
-| [`Highs`][Highs] | **✓** | **✓** | **✓** | — | — | — | — | — | — | — | — | — |
-| [`Clarabel`][Clarabel] | **✓** | — | **✓** | — | — | — | **✓** | — | **✓**¹ | — | — | — |
-| [`Pounce`][Pounce] | **✓** | — | **✓** | — | **✓** | — | **✓** | — | — | — | **✓** | — |
-| [`Scip`][Scip] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
-| [`Gurobi`][Gurobi] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
-| [`Mosek`][Mosek] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | — |
-| [`Baron`][Baron] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
-| [`Gams`][Gams] | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | — | — | **✓** | **✓** |
+| Backend                |  LP   | MILP  |  QP   | MIQP  |  QCP  | MIQCP | SOCP  | MISOCP |  SDP   | MISDP |  NLP  | MINLP |
+| ---------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :----: | :----: | :---: | :---: | :---: |
+| [`Highs`][Highs]       | **✓** | **✓** | **✓** |   —   |   —   |   —   |   —   |   —    |   —    |   —   |   —   |   —   |
+| [`Clarabel`][Clarabel] | **✓** |   —   | **✓** |   —   |   —   |   —   | **✓** |   —    | **✓**¹ |   —   |   —   |   —   |
+| [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   | **✓** |   —    |   —    |   —   | **✓** |   —   |
+| [`Scip`][Scip]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
+| [`Gurobi`][Gurobi]     | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
+| [`Mosek`][Mosek]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓**  |   —   |   —   |   —   |
+| [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
+| [`Gams`][Gams]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
 
 `Gams` accepts every kind at the oximo layer, but the actual coverage is the GAMS sub-solver's. Pick one that handles the kind you emit.
 
@@ -43,16 +50,16 @@ Deployment cost and diagnostic/solve capability per backend.
 
 **✓** = yes/supported; — = no.
 
-| Backend                | License | Separate install | C compiler | Direct interface |  IIS  | Warm start | Sol. pool | Duals | Parallel |
-| ---------------------- | :-----: | :--------------: | :--------: | :--------------: | :---: | :--------: | :-------: | :---: | :------: |
-| [`Highs`][Highs]       |  **—**  |      **—**       |     ✓      |      **✓**       |  —†   |   **✓**    |     —     | **✓** |  **✓**   |
-| [`Clarabel`][Clarabel] |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
-| [`Pounce`][Pounce]     |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |    —     |
+| Backend                | License | Separate install | C compiler | Direct interface |  IIS  | Warm start | Sol. pool | Duals  | Parallel |
+| ---------------------- | :-----: | :--------------: | :--------: | :--------------: | :---: | :--------: | :-------: | :----: | :------: |
+| [`Highs`][Highs]       |  **—**  |      **—**       |     ✓      |      **✓**       |  —†   |   **✓**    |     —     | **✓**  |  **✓**   |
+| [`Clarabel`][Clarabel] |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓**  |  **✓**   |
+| [`Pounce`][Pounce]     |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓**  |    —     |
 | [`Scip`][Scip]         |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |   **✓**   | **✓**‡ |  **✓**   |
-| [`Gurobi`][Gurobi]     |    ✓    |        ✓         |   **—**    |      **✓**       | **✓** |   **✓**    |   **✓**   | **✓** |  **✓**   |
-| [`Mosek`][Mosek]      |    ✓    |        ✓         |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
-| [`Baron`][Baron]       |    ✓    |        ✓         |   **—**    |        —         | **✓** |     —      |   **✓**   | **✓** |  **✓**   |
-| [`Gams`][Gams]         |    ✓    |        ✓         |   **—**    |        —         |   —   |     —      |  **✓**¶   | **✓** |  **✓**   |
+| [`Gurobi`][Gurobi]     |    ✓    |        ✓         |   **—**    |      **✓**       | **✓** |   **✓**    |   **✓**   | **✓**  |  **✓**   |
+| [`Mosek`][Mosek]       |    ✓    |        ✓         |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓**  |  **✓**   |
+| [`Baron`][Baron]       |    ✓    |        ✓         |   **—**    |        —         | **✓** |     —      |   **✓**   | **✓**  |  **✓**   |
+| [`Gams`][Gams]         |    ✓    |        ✓         |   **—**    |        —         |   —   |     —      |  **✓**¶   | **✓**  |  **✓**   |
 
 Column meanings:
 

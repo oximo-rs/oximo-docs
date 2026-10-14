@@ -56,21 +56,40 @@ Always check it before trusting a value.
 
 ## Fields and accessors
 
-| Item                       | Type                                                        | What information is available                  |
-| -------------------------- | ----------------------------------------------------------- | ---------------------------------------------- |
-| `termination`              | [`TerminationStatus`][TerminationStatus]                    | Why the solver stopped                         |
-| `primal_status`            | [`PrimalStatus`][PrimalStatus]                              | Whether a usable point is present              |
-| `objective()`              | `Option<f64>`                                               | Objective of the best solution                 |
-| `value_of(expr)`           | `Result<Option<f64>, ModelMismatchError>`                   | Primal value for a variable or indexed element |
-| `values_of(&var)`          | `Result<iterator, ModelMismatchError>`                      | Every element of an indexed variable           |
-| `dual_of(handle)`          | `Result<Option<f64>, ModelMismatchError>`                   | Shadow price (continuous models)               |
-| `value_of_matrix(&matrix)` | `Result<Option<SymmetricMatrix<f64>>, ModelMismatchError>`  | Evaluated symmetric matrix at the best point   |
-| `psd_dual_of(handle)`      | `Result<Option<&SymmetricMatrix<f64>>, ModelMismatchError>` | PSD cone dual matrix, when available           |
-| `reduced_costs`            | map keyed by `VarId`                                        | Reduced costs (continuous models)              |
-| `best_bound`, `gap`        | `Option<f64>`                                               | Populated by branch-and-bound backends         |
-| `solve_time`               | `Duration`                                                  | Wall-clock time in the backend                 |
-| `iterations`               | `u64`                                                       | Iteration count when the backend reports one   |
-| `raw_log`                  | `Option<String>`                                            | Backend log, when captured                     |
+| Item                       | Type                                                        | What information is available                |
+| -------------------------- | ----------------------------------------------------------- | -------------------------------------------- |
+| `termination`              | [`TerminationStatus`][TerminationStatus]                    | Why the solver stopped                       |
+| `primal_status`            | [`PrimalStatus`][PrimalStatus]                              | Whether a usable point is present            |
+| `objective()`              | `Option<f64>`                                               | Objective of the best solution               |
+| `value_of(expr)`           | `Result<Option<f64>, ModelMismatchError>`                   | Expression value using solve-time parameters |
+| `parameters`               | `ParameterSnapshot`                                         | Parameter values captured for this solve     |
+| `values_of(&var)`          | `Result<iterator, ModelMismatchError>`                      | Every element of an indexed variable         |
+| `dual_of(handle)`          | `Result<Option<f64>, ModelMismatchError>`                   | Shadow price (continuous models)             |
+| `value_of_matrix(&matrix)` | `Result<Option<SymmetricMatrix<f64>>, ModelMismatchError>`  | Evaluated symmetric matrix at the best point |
+| `psd_dual_of(handle)`      | `Result<Option<&SymmetricMatrix<f64>>, ModelMismatchError>` | PSD cone dual matrix, when available         |
+| `reduced_costs`            | map keyed by `VarId`                                        | Reduced costs (continuous models)            |
+| `best_bound`, `gap`        | `Option<f64>`                                               | Populated by branch-and-bound backends       |
+| `solve_time`               | `Duration`                                                  | Wall-clock time in the backend               |
+| `iterations`               | `u64`                                                       | Iteration count when the backend reports one |
+| `raw_log`                  | `Option<String>`                                            | Backend log, when captured                   |
+
+## Parameter snapshots and scenario queries
+
+Expression, matrix, algebraic-constraint, and SOC queries use the parameter
+values captured when the backend translated or updated the problem. Rebinding
+a parameter does not change an old result's answers. Each `SolutionPoint`,
+including pooled points, shares the result's immutable `ParameterSnapshot`.
+
+You can use the `_with_current_parameters` methods to evaluate the saved
+primal point under the model's current bindings.
+
+Scenario queries do not change stored objectives, statuses, bounds, duals, or
+other solver certificates. The saved point may be infeasible under the new bindings.
+
+Constraint definitions and bounds still come from the supplied model, since the
+snapshot does not preserve structural edits. Both query modes reject foreign
+model handles, including handles from transformed copies. Raw `VarId` and
+`ParamId` lookups cannot check ownership.
 
 ## Constraint handles
 
@@ -160,9 +179,9 @@ As with scalar results, model identity mismatches return an error.
 
 `value_of_matrix` also accepts affine matrix expressions, such as `t I - C`,
 and is available on individual `SolutionPoint`s. It evaluates symbolic
-parameters using their current values and returns `None` when there is no
-solution or a required variable value is missing. Save the evaluated matrix before
-rebinding parameters if you need the matrix for an earlier solve.
+parameters using their solve-time snapshot and returns `None` when there is no
+solution, a required variable value is missing, or a parameter was added after
+the solve.
 
 ## Solution pools
 
@@ -174,6 +193,10 @@ for i in 0..result.result_count() {
     println!("objective {:?}", point.objective);
 }
 ```
+
+Each point retains the solve-time parameters when cloned or queried after
+rebinding. Use `point.value_of(expr)?` for an expression at that pooled point,
+or `point.value_of_with_current_parameters(expr)?` for a scenario query.
 
 ## Next steps
 

@@ -74,6 +74,9 @@ A parameter times a variable stays linear, so the model kind is unchanged by re-
 
 For parameter sweeps, it is recommended to use a `Persistent` solver if available. See [Solvers](../solvers/) for details.
 
+Each solve captures the parameter values used by the backend;
+see [Results > Parameter snapshots and scenario queries](../results/#parameter-snapshots-and-scenario-queries).
+
 ## Index sets
 
 A [`Set`][Set] is the modeling-layer container for an ordered, finite index set
