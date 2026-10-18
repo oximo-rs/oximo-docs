@@ -1,0 +1,24 @@
+[package]
+name = "collect-signatures"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Collect docs.rs signatures into the oximo documentation index"
+
+[[bin]]
+name = "collect-signatures"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+html-escape = "0.3"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha1 = "0.11"
+toml = "1"
+ureq = "3"
+
+[profile.release]
+strip = true

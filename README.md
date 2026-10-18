@@ -16,7 +16,8 @@ Built with [Zola](https://www.getzola.org/), a static site generator. Live at
 | `sass/`       | Styles (compiled to CSS by Zola)                         |
 | `static/`     | Assets served as-is: JS, fonts, images, wasm             |
 | `dev/`        | Development-only page overrides, published under `/dev/` |
-| `versions/`   | Archived documentation sources for published versions   |
+| `versions/`   | Archived documentation sources for published versions    |
+| `tools/`      | Helper crates; `tools/signatures` builds the API index   |
 | `config.toml` | Site config: base URL, markdown, `[extra]` theme options |
 
 ## Develop
@@ -47,6 +48,15 @@ To release a new stable version, promote the tested development files into `cont
 `stable_version`, `dev_label`, and `[extra.versions]` in `config.toml`, and merge that promotion
 through the release branch. The build then continues to publish stable `/`, configured `versions/`
 archives, and development `/dev/` from one artifact.
+
+## Function signatures
+
+Function signatures are shown on hover. They are created from an index scraped from docs.rs.
+The index can be regenerated as:
+
+```sh
+cargo run --release --manifest-path tools/signatures/Cargo.toml
+```
 
 ## Analytics
 

@@ -301,6 +301,10 @@
     }, { once: true });
     </script>
 
+    {# ===== API signature popovers ===== #}
+    <meta name="oximo-signatures" content="{{ get_url(path='docs-signatures.json') | safe }}">
+    <meta name="oximo-docs-version" content="{{ config.extra.versions.current | default(value=config.extra.stable_version) }}">
+
     {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -407,6 +411,7 @@
     <script src="{{ get_url(path='js/theme.js') | safe }}" defer></script>
     <script src="{{ get_url(path='js/navigation.js') | safe }}" defer></script>
     <script src="{{ get_url(path='js/code.js') | safe }}" defer></script>
+    <script src="{{ get_url(path='js/signatures.js') | safe }}" defer></script>
 
     {% if config.build_search_index %}
     <script src="{{ get_url(path='elasticlunr.min.js') | safe }}" defer></script>

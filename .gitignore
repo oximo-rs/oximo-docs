@@ -2,4 +2,5 @@ public/
 zola
 .tools/
 static/processed_images/
+.signatures-cache/
 target/
