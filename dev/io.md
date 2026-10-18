@@ -219,9 +219,9 @@ Solve SDP models directly with [Clarabel or MOSEK](../solvers/#model-kind-suppor
 [write_nl_files]: https://docs.rs/oximo-io/latest/oximo_io/nl/fn.write_nl_files.html
 [read_nl]: https://docs.rs/oximo-io/latest/oximo_io/nl/fn.read_nl.html
 [read_nl_file]: https://docs.rs/oximo-io/latest/oximo_io/nl/fn.read_nl_file.html
-[read_mps]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_mps.html
-[read_mps_file]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_mps_file.html
-[read_mps_file_with]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_mps_file_with.html
-[read_lp]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_lp.html
-[read_lp_file]: https://docs.rs/oximo-io/latest/oximo_io/fn.read_lp_file.html
-[IoError]: https://docs.rs/oximo-io/latest/oximo_io/enum.IoError.html
+[read_mps]: https://docs.rs/oximo-io/latest/oximo_io/mps/fn.read_mps.html
+[read_mps_file]: https://docs.rs/oximo-io/latest/oximo_io/mps/fn.read_mps_file.html
+[read_mps_file_with]: https://docs.rs/oximo-io/latest/oximo_io/mps/fn.read_mps_file_with.html
+[read_lp]: https://docs.rs/oximo-io/latest/oximo_io/lp/fn.read_lp.html
+[read_lp_file]: https://docs.rs/oximo-io/latest/oximo_io/lp/fn.read_lp_file.html
+[IoError]: https://docs.rs/oximo-io/latest/oximo_io/error/enum.IoError.html

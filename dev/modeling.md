@@ -146,7 +146,12 @@ let lhs = x + 2.0 * y - 3.0 * z;
 let rhs = 4.0 * x + 5.0;
 ```
 
-Behind the scenes oximo uses arena-allocated expression trees ([`oximo-expr`][oximo-expr]), so combining large [`Expr`][Expr]s stays cheap.
+Expressions carry a degree in their Rust type: constant, affine, quadratic,
+nonlinear, or dynamic. For example, `x.square()` and `x * x` are statically
+quadratic, while `x.powi(n)` has a dynamic degree because `n` is a runtime value.
+Use `expr.try_affine()?` or `expr.try_quadratic()?` when an API requires a checked
+narrower degree. Use `expr.erase()` when a collection needs to hold expressions
+of different degrees.
 
 ## Aggregating over sets
 
@@ -208,6 +213,49 @@ constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 ```
 
 For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
+
+### Functions in sets
+
+A constraint means that a function's value belongs to a set. The familiar
+`x <= 5.0` pairs an affine function with `LessThan(5.0)`; `>=`, `==`, and
+constant two-sided bounds use `GreaterThan`, `EqualTo`, and `Interval`.
+SOC and PSD declarations similarly require membership in a cone.
+
+The macros create these pairs for you. When building constraints in a helper
+function, you can also register a pair directly:
+
+```rust
+let cap = m.add_constraint(
+    "capacity",
+    Constraint::new((2.0 * x + y).into_function(), LessThan(100.0)),
+);
+```
+
+Registration preserves the original function and set, including symbolic
+parameters. A mathematically valid pair still needs a compatible backend;
+see [Checking model compatibility](../solvers/#checking-model-compatibility).
+
+### Handles and updates
+
+Capture the return value of a declaration to keep its typed, model-bound handle.
+
+```rust
+let cap = constraint!(m, capacity, x <= 5.0);
+m.set_constraint_set(cap, LessThan(8.0))?;
+m.set_constraint_function(cap, (2.0 * x).into_function())?;
+m.set_constraint_active(cap, false)?;
+m.set_constraint_active(cap, true)?;
+```
+
+Updates preserve the ID and the function/set types. To replace `LessThan` with
+`EqualTo`, or an affine function with a quadratic one, deactivate the old
+constraint and add a new one. Invalid bounds, incompatible dimensions, and handles
+from another model are rejected.
+
+For a collection of different constraint types, store `handle.erase()`.
+
+After an SOS or indicator has been reformulated, its source cannot be edited
+or reactivated.
 
 ## Semidefinite constraints
 
@@ -335,7 +383,7 @@ native-indicator model, use `m.to_reformulated_indicator_model(options)` to make
 an independent transformed model. Both forms preserve source indicator IDs,
 mark the sources inactive, and record generated constraint IDs in
 `indicator_reformulations()`. They add no variables. For one indicator, use its
-handle's `reformulate(options)` or `to_reformulated_model(options)` method.
+handle's `reformulate(&m, options)` or `to_reformulated_model(&m, options)` method.
 
 Each finite side of an indicator gets a Big-M row. oximo derives M from the
 body's affine coefficients and variable bounds, including the zero option for
@@ -421,7 +469,7 @@ let m = Model::new("reformulated_sos");
 variable!(m, 0.0 <= x <= 10.0);
 variable!(m, 0.0 <= y <= 10.0);
 variable!(m, 0.0 <= z <= 10.0);
-sos_constraint!(m, choice, SOS1, [x, y, z]);
+let choice = sos_constraint!(m, choice, SOS1, [x, y, z]);
 objective!(m, Max, x + 2.0 * y + 3.0 * z);
 
 // Uses each member's finite bounds as its Big-M values. The source SOS is
@@ -439,6 +487,9 @@ solve it with Gurobi as well—produce an independent transformed model instead:
 let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
 let result = Highs.solve(&reformulated, &HighsOptions::default())?;
 ```
+
+To reformulate only one SOS constraint, call
+`choice.reformulate(&m, options)` or `choice.to_reformulated_model(&m, options)`.
 
 A member needs finite bounds in every direction in which it can be nonzero. If
 that is not available, pass a positive finite fallback to the in-place call
@@ -509,8 +560,8 @@ linear terms and indexed aggregations. [`Expr`][Expr] provides:
 // Rosenbrock NLP
 objective!(m1, Min, (1.0 - x).powi(2) + 100.0 * (y - x.powi(2)).powi(2));
 
-// Quadratic constraint (model kind: QCP)
-constraint!(m2, disk, x.powi(2) + y.powi(2) <= 1.0);
+// Quadratic expression (this disk may be recognized as a second-order cone)
+constraint!(m2, disk, x.square() + y.square() <= 1.0);
 
 // Second-order cone ||(x, y)|| <= t (model kind: SOCP)
 soc_constraint!(m3, cone, [x, y] <= t);
@@ -522,7 +573,10 @@ objective!(m4, Max, sum!(u[i] * (1.0 + w[i] * x[i]).log() for i in items));
 constraint!(m5, response, x.exp() + y.tanh() <= x.max(y) + 3.0);
 ```
 
-Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKind`][ModelKind]. Backends reject kinds they don't support. See [Printing & Debugging](../debugging/#checking-the-model-kind).
+Check the inferred [`ModelKind`][ModelKind] with [`Model::kind()`][Model]. It
+summarizes the built-in algebraic and conic views. Use
+[`validate_model`](../solvers/#checking-model-compatibility) to check whether the
+chosen backend accepts the complete model, its declared pairs, and options.
 
 ## Incremental affine construction
 

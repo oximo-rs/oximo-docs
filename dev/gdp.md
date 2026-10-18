@@ -993,8 +993,7 @@ A reference shifts affine copies and rows as well as nonlinear perspectives:
 **a generated copy represents `activation * (source - reference)`.**
 Use `with_hull_reference_coordinates(variables.iter().map(|(_, v)| (v, reference)))`
 for an indexed family, or supply different values for each entry.
-`with_hull_reference_point` is a compatibility alias. Setters require bare
-variable handles from the source model.
+Setters require bare variable handles from the source model.
 
 In flat root `ExactlyOne` groups, two or more branches that never use a coordinate
 share one unused copy activated by their summed selectors. If just one branch

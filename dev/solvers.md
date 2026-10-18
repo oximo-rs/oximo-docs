@@ -27,7 +27,7 @@ To determine what backend to use, consider what each backend _solves_ (by model 
 
 ### Model kind support
 
-Each row is what [`Solver::supports`][Solver] accepts for that backend, against every [`ModelKind`][ModelKind]:
+Each row is what [`Solver::supports`][Solver] accepts for that backend, against every [`ModelKind`][ModelKind]. This is a broad classification; [validate the complete model](#checking-model-compatibility) for data and option restrictions:
 
 | Backend                |  LP   | MILP  |  QP   | MIQP  |  QCP  | MIQCP | SOCP  | MISOCP |  SDP   | MISDP |  NLP  | MINLP |
 | ---------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :----: | :----: | :---: | :---: | :---: |
@@ -82,7 +82,35 @@ Clarabel's build requirements above describe the base `clarabel` feature.
 SDP adds native BLAS/LAPACK dependencies. Compiler and installation requirements
 depend on the [selected provider](../installation/#clarabel-sdp).
 
-A backend rejects model kinds it can't handle, so check [`Model::kind()`][Model] if a solve returns [`SolverError::UnsupportedKind`][SolverError].
+### Checking model compatibility
+
+Use `validate_model` with the options you intend to solve with. It checks the
+complete combination of constraints, objective, and variable domains, including
+backend restrictions that a `ModelKind` alone cannot express:
+
+```rust
+let mut solver = Highs;
+let options = HighsOptions::default();
+let validation = solver.validate_model(&m, &options);
+for diagnostic in &validation.errors {
+    eprintln!("{}: {}", diagnostic.location, diagnostic.reason);
+}
+validation.into_result()?;
+let result = solver.solve(&m, &options)?;
+```
+
+`supports_model(&m)` is a convenient structural check. Validation additionally
+uses the selected options and actual function data.
+
+Individual support does not establish that constructs can be combined: HiGHS
+accepts integer linear models and continuous quadratic objectives separately,
+but rejects MIQP.
+
+| `Capability`                 | Meaning                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `Native`                     | The backend implements the interface; whole-model and data checks still apply.        |
+| `Unsupported`                | The query found no supported interface.                                               |
+| `RequiresValidation(reason)` | The signature alone is insufficient; actual function data or options must be checked. |
 
 ## HiGHS
 

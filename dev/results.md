@@ -98,16 +98,16 @@ solve. A scalar relation returns a model-bound [`ConstraintHandle`][ConstraintHa
 A two-sided range returns [`RangeConstraintHandles`][RangeConstraintHandles],
 which identifies either one interval row or its separate lower and upper rows.
 The model identity prevents accidentally querying a result with a handle from a
-different model. Use `.id()` on a handle only when a backend-facing raw
-[`ConstraintId`][ConstraintId] is required.
+different model. `.id()` returns a tagged `SemanticConstraintId`; use
+`.row_id()` only when a raw algebraic [`ConstraintId`][ConstraintId] is required.
+Use `.try_row_id()` when an algebraic row may be absent.
 
 Capture an indexed declaration when you need to query its rows. The returned
 [`IndexedConstraint`][IndexedConstraint] maps each typed key to its registered
 handle, so dual queries do not need to reconstruct generated names:
 
 ```rust
-let cover: IndexedConstraint<usize> =
-    constraint!(m, cover[i in 0..n_items], x[i] >= demand[i]);
+let cover = constraint!(m, cover[i in 0..n_items], x[i] >= demand[i]);
 
 let handle = cover.get(0).expect("cover row exists");
 let dual = result.dual_of(handle)?;
@@ -143,6 +143,22 @@ for (i, handles) in bands.iter() {
     }
 }
 ```
+
+### Original constraints and stored rows
+
+`result.dual_of(handle)?` returns the multiplier for the original declaration.
+A stored row can have a different scaling: `x <= 2` and `2 * x <= 4` describe
+the same bound, but their multipliers differ by a factor of two. The raw
+`result.dual` map is keyed by stored algebraic row IDs;
+prefer handles for queries about your model.
+
+`dual_of` returns `None` when the backend supplies no dual or a transformation
+has no mapping back to the original constraint.
+
+Constraint evaluation also uses the original function and bounds. A custom
+function that cannot be evaluated through the scalar API returns `None`.
+As with other result queries, parameter values come from the solve-time snapshot,
+while constraint definitions come from the supplied model.
 
 ## Indexed variables
 

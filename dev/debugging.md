@@ -32,7 +32,10 @@ vars
   y >= 0
 ```
 
-The header carries the inferred [`ModelKind`][ModelKind], so a single print answers both "did my constraints come out right?" and "why is this backend refusing my model?". Ranges, cones, and domains all render in the algebraic form you wrote:
+The header carries the inferred [`ModelKind`][ModelKind], which helps check the
+model's algebraic structure. Backend compatibility also depends on the complete
+model and options; see [validation](../solvers/#checking-model-compatibility).
+Ranges, cones, and domains all render in the algebraic form you wrote:
 
 ```txt
 max x + y
@@ -45,32 +48,37 @@ max x + y
 
 Printing a 10,000-constraint model is not debugging. Display adapters render a single piece, which is what you want inside an assertion or a targeted `dbg!`:
 
-| Adapter                           | Renders               |
-| --------------------------------- | --------------------- |
-| [`display_expr(e)`][d_expr]       | A bare [`Expr`][Expr] |
-| [`display_constraint(id)`][d_con] | One named constraint  |
-| [`display_objective()`][d_obj]    | The objective         |
-| [`display_soc(id)`][d_soc]        | One second-order cone |
+| Adapter                                | Renders                       |
+| -------------------------------------- | ----------------------------- |
+| [`display_expr(e)`][d_expr]            | A bare [`Expr`][Expr]         |
+| [`display_constraint(handle)?`][d_con] | The original named constraint |
+| [`display_row(id)`][d_row]             | A stored algebraic row        |
+| [`display_objective()`][d_obj]         | The objective                 |
+| [`display_soc(id)`][d_soc]             | One second-order cone         |
 
-Look an id up by name with [`constraint_id`][cid] (or `soc_constraint_id`), then render it:
+Keep the declaration's handle, or retrieve it with `constraint_handle(name)`,
+then render the original function and set. A foreign handle returns an error:
 
 ```rust
-let c = m.constraint_id("c").unwrap();
-assert_eq!(m.display_constraint(c).to_string(), "c: -y + x * y <= 3");
+let c = m.constraint_handle("c1").unwrap();
+println!("{}", m.display_constraint(c)?);
 assert_eq!(m.display_expr(2.0 * x - y).to_string(), "2 x - y");
 ```
+
+For a raw algebraic [`constraint_id`][cid], use `m.display_row(id)`. This can
+differ from the original declaration when a transformation changes the stored row.
 
 Because these return `Display` adapters rather than `String`, they're cheap to leave in test assertions. The rendering only happens when something formats them.
 
 ## Rule-generated names
 
-Indexed constraints are auto-named `base[key]`, and that name is exactly what `constraint_id` expects. This is the usual way to confirm a [rule](../modeling/#rule-style-constraints) expanded over the keys you intended:
+Indexed constraints are auto-named `base[key]`, and that name is exactly what `constraint_handle` expects. This is the usual way to confirm a [rule](../modeling/#rule-style-constraints) expanded over the keys you intended:
 
 ```rust
 constraint!(m, supply[p in plants], sum!(x[p, q] for q in markets) <= supply_of(&p));
 
-let c = m.constraint_id("supply[seattle]").unwrap();
-println!("{}", m.display_constraint(c));
+let c = m.constraint_handle("supply[seattle]").unwrap();
+println!("{}", m.display_constraint(c)?);
 ```
 
 To render a key the same way the auto-namer does, use [`display_index_key`][dik].
@@ -97,7 +105,10 @@ oximo infers the [`ModelKind`][ModelKind] from the expressions you write. You ne
 assert_eq!(m.kind(), ModelKind::LP);
 ```
 
-Compare the result against the [backend table](../solvers/#choosing-a-backend) to see which solvers accept it.
+Compare the result against the [backend table](../solvers/#choosing-a-backend)
+for an initial choice, then use `solver.validate_model(&m, &options)` to check
+the complete model. `m.kind()` summarizes the registered representations; it does
+not establish compatibility with every constraint, domain, and selected option.
 
 ### Models with PSD blocks
 
@@ -158,6 +169,7 @@ After a solve, [`result.report(&m)`](../results/#reading-results) pairs the mode
 [ModelKind]: https://docs.rs/oximo/latest/oximo/prelude/enum.ModelKind.html
 [Expr]: https://docs.rs/oximo/latest/oximo/prelude/struct.Expr.html
 [d_expr]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html#method.display_expr
+[d_row]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html#method.display_row
 [d_con]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html#method.display_constraint
 [d_obj]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html#method.display_objective
 [d_soc]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html#method.display_soc
