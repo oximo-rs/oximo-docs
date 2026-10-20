@@ -64,13 +64,16 @@ variable!(m, x1 >= 0.0);
 objective!(m, Max, p1 * x1);
 
 for price in [1.0, 1.6, 2.0] {
-    p1.set_param_value(price);
+    p1.set_param_value(price)?;
     let result = Highs.solve(&m, &HighsOptions::default())?;
     println!("{price} -> {:?}", result.objective());
 }
 ```
 
 A parameter times a variable stays linear, so the model kind is unchanged by re-binding.
+Re-binding returns a `ModelError` when the write is invalid, for example a
+non-finite value or a bound-ordering conflict, and leaves the previous value in
+place.
 
 For parameter sweeps, it is recommended to use a `Persistent` solver if available. See [Solvers](../solvers/) for details.
 
@@ -127,7 +130,7 @@ variable!(m, z[a in rows, b in cols], Bin); // multi-index (Cartesian product)
 let e1 = x[("seattle", "nyc")];
 let e2 = z[a, b];
 
-// Per-key bounds may reference the index.
+// Per-key bounds may reference the index, including a per-key parameter.
 variable!(m, 0.0 <= w[(p, q) in routes] <= capacity_for(&p, &q));
 variable!(m, v[k in items], lb = 0.0, ub = cap[k]);
 
