@@ -15,9 +15,10 @@ activates a different set of constraints.
 The optional `oximo-gdp` crate adds GDP modeling to the ordinary `Model`.
 Reformulation converts the logical and conditional components into algebraic
 constraints that a compatible solver can handle. Choose from
-[Big-M and Hull](#reformulations-available). GDP components must be
-reformulated before solving or exporting. Use `reformulate_gdp` in place,
-`to_reformulated_gdp_model` for an independent copy, or `with_gdp` at solve time.
+[Big-M and Hull](#reformulations-available). For solving, prefer
+`solver.with_gdp(...).solve(...)`: it reformulates the model and returns results
+for your declared variables and Hull activations. Use explicit reformulation to
+export or inspect the transformed model, or to create an independent copy.
 
 ## Enable GDP
 
@@ -178,10 +179,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let choice = disjunction!(model, unit, [small, large]);
     objective!(model, Max, flow - cost);
 
-    let report = model.reformulate_gdp(BigM::default())?;
-    let result = Highs.solve(&model, &HighsOptions::default())?;
+    let result = Highs
+        .with_gdp(BigM::default())
+        .solve(&model, &HighsOptions::default())?;
 
-    println!("{} conditional rows reformulated", report.rows.len());
     println!("objective: {:?}", result.objective());
     println!("flow: {:?}", result.value_of(flow)?);
     println!("cost: {:?}", result.value_of(cost)?);
@@ -194,17 +195,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Expected output, apart from any solver log:
 
 ```text
-4 conditional rows reformulated
 objective: Some(6.0)
 flow: Some(8.0)
 cost: Some(2.0)
 large unit selected: Some(true)
 ```
-
-`report.rows.len()` counts the source conditional rows transformed by this call.
-In this example, two in each disjunct, for a total of four. Each report entry's
-`constraints` field lists its generated algebraic row IDs; a range or equality can
-generate two rows.
 
 The solution selects the large unit; its conditional rows enforce the cost.
 `boolean_value_of` returns `Result<Option<bool>, BooleanValueError>`. The
@@ -570,34 +565,11 @@ For larger inclusive groups, consider Big-M or inspect the expansion with
 
 ## Applying a reformulation
 
-Pass a method directly to `reformulate_gdp` to transform pending GDP components
-in place. For example, select Hull with:
-
-```rust
-model.reformulate_gdp(Hull::default())?;
-```
-
-Use `BigM::default()` in the same call to select Big-M. Both methods also work
-with `to_reformulated_gdp_model` and the solver's `with_gdp` wrapper.
-
-> **Keep a source model for repeated solves.** In-place reformulation locks the
-> variable bounds and parameter values used by transformed rows, including
-> dependencies of supporting global constraints. An applied method cannot be
-> replaced on those rows. If you may re-solve with different data or compare
-> methods, use `to_reformulated_gdp_model` before transforming the source:
->
-> ```rust
-> let transformed = model.to_reformulated_gdp_model(BigM::default())?;
-> ```
->
-> Update the unreformulated source between runs and create a fresh transformed
-> copy for each run. Rebind handles when querying the copy's results; see
-> [Lifecycle, cloning, and reports](#lifecycle-cloning-and-reports).
-
 ### Select during solving
 
-Use `with_gdp` to select a method on any solver. The wrapper reformulates pending
-GDP components in place before calling the backend, using its ordinary options:
+Prefer `with_gdp` for routine GDP solves. It reformulates pending GDP components
+in place, calls the backend with its ordinary options, and returns results for
+your declared variables and Hull activations:
 
 ```rust
 let result = Highs
@@ -607,7 +579,16 @@ let result = Highs
 println!("flow: {:?}", result.value_of(flow)?);
 ```
 
-The transformation report is available through `model.gdp_reformulations()`.
+Other generated variables and multipliers for generated rows are omitted.
+Variables and ordinary constraints added between solves remain available in
+later results. The transformation report is available through
+`model.gdp_reformulations()`; see [Hull activation queries](#hull-copy-and-activation-reports).
+
+> **Changing data or methods between solves.** Both `with_gdp` and explicit
+> reformulation lock bounds and parameter values used by transformed rows. To
+> change those inputs or compare methods, keep the source unreformulated and use
+> `to_reformulated_gdp_model(...)` for an independent copy. See
+> [Lifecycle, cloning, and reports](#lifecycle-cloning-and-reports).
 
 ### Per-disjunction configuration
 
@@ -636,6 +617,18 @@ Reformulation processes only pending components. Selecting another method after
 an in-place transformation does not replace the existing reformulation. To
 compare methods, retain an unreformulated source and create independent copies
 with `to_reformulated_gdp_model`.
+
+### Reformulate explicitly
+
+Use explicit reformulation to export the transformed model or inspect all
+generated values and multipliers:
+
+```rust
+model.reformulate_gdp(Hull::default())?;
+let result = Highs.solve(&model, &HighsOptions::default())?;
+```
+
+To transform an independent copy instead, use `model.to_reformulated_gdp_model(...)`.
 
 ### Planning and expansion limits
 
