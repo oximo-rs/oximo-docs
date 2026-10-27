@@ -579,9 +579,11 @@ let result = Highs
 println!("flow: {:?}", result.value_of(flow)?);
 ```
 
-Other generated variables and multipliers for generated rows are omitted.
-Variables and ordinary constraints added between solves remain available in
-later results. The transformation report is available through
+Other generated variables and multipliers for generated rows are omitted,
+including auxiliaries from earlier SOS or indicator reformulations. This also
+applies to duals retrieved through `dual_of`. Variables and ordinary constraints
+declared between solves remain available in later results.
+The transformation report is available through
 `model.gdp_reformulations()`; see [Hull activation queries](#hull-copy-and-activation-reports).
 
 > **Changing data or methods between solves.** Both `with_gdp` and explicit
@@ -1168,11 +1170,29 @@ Successful transformations retain source records and provenance:
 | `model.gdp_reformulations()`      | Transformation history                                                                                                                           |
 | Returned `GdpReformulationReport` | Generated rows and auxiliaries, Boolean/binary mappings, methods, per-side \\(M\\) values, and Hull copies, references, patterns and branch sums |
 
+Print the report directly for a compact summary, or use `report.display(&model)`
+to include generated variable names, bounds, and algebraic rows:
+
+```rust
+println!("{report}");
+println!("{}", report.display(&model));
+```
+
+For programmatic variable inspection, `report.generated_variables(&model)`
+
+Generated variable and row fields use `GeneratedVarId` and
+`GeneratedConstraintId`. Ordinary variable-handle and scalar-row APIs do not
+accept these types directly. Use `id.raw_id()` explicitly when inspecting the
+transformed model's registries. Use the Hull activation helpers below to query
+activation values retained by `with_gdp`.
+
 ### Hull copy and activation reports
 
 `report.hull_variables` describes each copy through its `source`, `generated`,
 `bounds`, effective `reference`, and activation. The `source` can be another
-generated child copy, selector, or pattern weight. `constraints` lists the copy's
+generated child copy, selector, or pattern weight. Its `ReformulationVarId`
+provides `source()` and `generated()` accessors to distinguish these cases;
+`raw_id()` retrieves the underlying registry ID. `constraints` lists the copy's
 bound artifacts, including ancestor transformations; use `report.rows` to trace
 the source's conditional rows. `hull_patterns` records inclusive selections and
 weights. `hull_branch_sums` records weights shared by unused branches.

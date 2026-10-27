@@ -217,6 +217,25 @@ constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 
 For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
 
+SOC components and bounds, PSD matrix entries, and indicator consequents must
+have constant or affine Rust types. Narrow dynamic expressions explicitly with
+`try_affine()` before passing them to these constructors:
+
+```rust
+let m = Model::new("checked affine input");
+
+variable!(m, x);
+variable!(m, t >= 0.0);
+
+let component = x.powi(1).try_affine().expect("component must be affine");
+soc_constraint!(m, [component] <= t);
+```
+
+Narrowing checks the expression at runtime and returns an error if it is not
+affine. Calling `erase()` produces a dynamic type and does not satisfy this
+requirement. Ordinary scalar constraints still accept dynamic and nonlinear
+expressions directly.
+
 ### Functions in sets
 
 A constraint means that a function's value belongs to a set. The familiar
@@ -381,12 +400,15 @@ let result = Highs.solve(&m, &HighsOptions::default())?;
 ```
 
 `Model::reformulate_indicators` changes the model in place without cloning it
-and returns artifacts containing the generated constraint IDs. To retain the
+and returns artifacts containing `GeneratedConstraintId` values. To retain the
 native-indicator model, use `m.to_reformulated_indicator_model(options)` to make
 an independent transformed model. Both forms preserve source indicator IDs,
 mark the sources inactive, and record generated constraint IDs in
 `indicator_reformulations()`. They add no variables. For one indicator, use its
 handle's `reformulate(&m, options)` or `to_reformulated_model(&m, options)` method.
+
+Each returned report supports `println!("{report}")` for a summary and
+`report.display(&m)` for the source indicator and generated algebraic rows.
 
 Each finite side of an indicator gets a Big-M row. oximo derives M from the
 body's affine coefficients and variable bounds, including the zero option for
@@ -490,6 +512,19 @@ solve it with Gurobi as well—produce an independent transformed model instead:
 let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
 let result = Highs.solve(&reformulated, &HighsOptions::default())?;
 ```
+
+Each returned report supports `println!("{report}")` for a compact summary.
+Use `report.display(&m)` to include the source SOS, generated variable names and
+bounds, and algebraic rows:
+
+```rust
+for report in &artifacts {
+    println!("{}", report.display(&m));
+}
+```
+
+For programmatic variable inspection, use `report.generated_variables(&m)`
+to access read-only metadata directly.
 
 To reformulate only one SOS constraint, call
 `choice.reformulate(&m, options)` or `choice.to_reformulated_model(&m, options)`.

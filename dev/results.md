@@ -39,7 +39,7 @@ match result.termination {
 }
 
 let x_val = result.value_of(x)?;                 // Option<f64>
-let dual  = result.dual_of(constraint_handle)?;  // Option<f64>
+let dual  = result.dual_of(scalar_handle)?;      // Option<f64>
 ```
 
 ## Status
@@ -64,7 +64,8 @@ Always check it before trusting a value.
 | `value_of(expr)`           | `Result<Option<f64>, ModelMismatchError>`                   | Expression value using solve-time parameters |
 | `parameters`               | `ParameterSnapshot`                                         | Parameter values captured for this solve     |
 | `values_of(&var)`          | `Result<iterator, ModelMismatchError>`                      | Every element of an indexed variable         |
-| `dual_of(handle)`          | `Result<Option<f64>, ModelMismatchError>`                   | Shadow price (continuous models)             |
+| `dual_of(scalar_handle)`   | `Result<Option<f64>, ModelMismatchError>`                   | Scalar shadow price (continuous models)      |
+| `soc_dual_of(handle)`      | `Result<Option<f64>, ModelMismatchError>`                   | SOC multiplier, when available               |
 | `value_of_matrix(&matrix)` | `Result<Option<SymmetricMatrix<f64>>, ModelMismatchError>`  | Evaluated symmetric matrix at the best point |
 | `psd_dual_of(handle)`      | `Result<Option<&SymmetricMatrix<f64>>, ModelMismatchError>` | PSD cone dual matrix, when available         |
 | `reduced_costs`            | map keyed by `VarId`                                        | Reduced costs (continuous models)            |
@@ -98,9 +99,13 @@ solve. A scalar relation returns a model-bound [`ConstraintHandle`][ConstraintHa
 A two-sided range returns [`RangeConstraintHandles`][RangeConstraintHandles],
 which identifies either one interval row or its separate lower and upper rows.
 The model identity prevents accidentally querying a result with a handle from a
-different model. `.id()` returns a tagged `SemanticConstraintId`; use
-`.row_id()` only when a raw algebraic [`ConstraintId`][ConstraintId] is required.
-Use `.try_row_id()` when an algebraic row may be absent.
+different model. `.id()` returns a tagged `SemanticConstraintId`. Typed scalar
+handles expose `.row_id()` when a raw algebraic [`ConstraintId`][ConstraintId]
+is required. Cone handles expose `.soc_id()` or `.psd_id()` for their respective
+registries. Erased handles provide fallible accessors such as `.try_row_id()`.
+
+Use `result.soc_dual_of(handle)?` for SOC handles and
+`result.psd_dual_of(handle)?` for PSD handles.
 
 Capture an indexed declaration when you need to query its rows. The returned
 [`IndexedConstraint`][IndexedConstraint] maps each typed key to its registered
