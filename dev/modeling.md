@@ -407,6 +407,9 @@ mark the sources inactive, and record generated constraint IDs in
 `indicator_reformulations()`. They add no variables. For one indicator, use its
 handle's `reformulate(&m, options)` or `to_reformulated_model(&m, options)` method.
 
+To query a transformed copy's results with your original model's handles,
+use [source-result projection](../results/#results-after-reformulation).
+
 Each returned report supports `println!("{report}")` for a summary and
 `report.display(&m)` for the source indicator and generated algebraic rows.
 
@@ -512,6 +515,9 @@ solve it with Gurobi as well—produce an independent transformed model instead:
 let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
 let result = Highs.solve(&reformulated, &HighsOptions::default())?;
 ```
+
+To query these results with the original `x`, `y`, and `z` handles, use
+[source-result projection](../results/#results-after-reformulation).
 
 Each returned report supports `println!("{report}")` for a compact summary.
 Use `report.display(&m)` to include the source SOS, generated variable names and

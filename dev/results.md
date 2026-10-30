@@ -62,6 +62,7 @@ Always check it before trusting a value.
 | `primal_status`            | [`PrimalStatus`][PrimalStatus]                              | Whether a usable point is present            |
 | `objective()`              | `Option<f64>`                                               | Objective of the best solution               |
 | `value_of(expr)`           | `Result<Option<f64>, ModelMismatchError>`                   | Expression value using solve-time parameters |
+| `value_of_captured(&expr)` | `Result<Option<f64>, ModelMismatchError>`                   | Captured formula using solve-time parameters |
 | `parameters`               | `ParameterSnapshot`                                         | Parameter values captured for this solve     |
 | `values_of(&var)`          | `Result<iterator, ModelMismatchError>`                      | Every element of an indexed variable         |
 | `dual_of(scalar_handle)`   | `Result<Option<f64>, ModelMismatchError>`                   | Scalar shadow price (continuous models)      |
@@ -79,7 +80,7 @@ Always check it before trusting a value.
 Expression, matrix, algebraic-constraint, and SOC queries use the parameter
 values captured when the backend translated or updated the problem. Rebinding
 a parameter does not change an old result's answers. Each `SolutionPoint`,
-including pooled points, shares the result's immutable `ParameterSnapshot`.
+including pooled points, retains the parameter values used for its solve.
 
 You can use the `_with_current_parameters` methods to evaluate the saved
 primal point under the model's current bindings.
