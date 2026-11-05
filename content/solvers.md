@@ -14,25 +14,35 @@ let result = Backend.solve(&model, &BackendOptions::default())?;
 
 `result` is a [`SolverResult`][SolverResult], the same struct regardless of backend.
 
+Every solve captures the parameters used to translate or update the native
+problem. A persistent solve refreshes this snapshot even when only an unused
+parameter changes and the native problem is reused. Earlier results keep their
+own snapshots, and a solve with no solution still retains its captured
+parameters. See [Results > Parameter snapshots and scenario queries](../results/#parameter-snapshots-and-scenario-queries)
+for queries using saved or current parameter values.
+
 ## Choosing a backend
 
 To determine what backend to use, consider what each backend _solves_ (by model kind) and what it _costs and offers_ (license, install, diagnostics). Each backend's Cargo feature flag is named in its own section below.
 
 ### Model kind support
 
-Each row is what [`Solver::supports`][Solver] accepts for that backend, against every [`ModelKind`][ModelKind]:
+Each row summarizes the backend's coverage of [`ModelKind`][ModelKind]. This is a broad classification; [validate the complete model](#checking-model-compatibility) for data and option restrictions:
 
-| Backend                |  LP   | MILP  |  QP   | MIQP  |  QCP  | MIQCP | SOCP  | MISOCP |  NLP  | MINLP |
-| ---------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :----: | :---: | :---: |
-| [`Highs`][Highs]       | **✓** | **✓** | **✓** |   —   |   —   |   —   |   —   |   —    |   —   |   —   |
-| [`Clarabel`][Clarabel] | **✓** |   —   | **✓** |   —   |   —   |   —   | **✓** |   —    |   —   |   —   |
-| [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   | **✓** |   —    | **✓** |   —   |
-| [`Gurobi`][Gurobi]     | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
-| [`Mosek`][Mosek]      | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —   |   —   |
-| [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
-| [`Gams`][Gams]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓** | **✓** |
+| Backend                |  LP   | MILP  |  QP   | MIQP  |  QCP  | MIQCP | SOCP  | MISOCP |  SDP   | MISDP |  NLP  | MINLP |
+| ---------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :----: | :----: | :---: | :---: | :---: |
+| [`Highs`][Highs]       | **✓** | **✓** | **✓** |   —   |   —   |   —   |   —   |   —    |   —    |   —   |   —   |   —   |
+| [`Clarabel`][Clarabel] | **✓** |   —   | **✓** |   —   |   —   |   —   | **✓** |   —    | **✓**¹ |   —   |   —   |   —   |
+| [`Pounce`][Pounce]     | **✓** |   —   | **✓** |   —   | **✓** |   —   | **✓** |   —    |   —    |   —   | **✓** |   —   |
+| [`Scip`][Scip]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
+| [`Gurobi`][Gurobi]     | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
+| [`Mosek`][Mosek]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  | **✓**  |   —   |   —   |   —   |
+| [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
+| [`Gams`][Gams]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
 
 `Gams` accepts every kind at the oximo layer, but the actual coverage is the GAMS sub-solver's. Pick one that handles the kind you emit.
+
+**¹** Clarabel requires an [SDP feature and BLAS/LAPACK provider](../installation/#clarabel-sdp).
 
 ### Requirements & capabilities
 
@@ -40,20 +50,21 @@ Deployment cost and diagnostic/solve capability per backend.
 
 **✓** = yes/supported; — = no.
 
-| Backend                | License | Separate install | C compiler | Direct interface |  IIS  | Warm start | Sol. pool | Duals | Parallel |
-| ---------------------- | :-----: | :--------------: | :--------: | :--------------: | :---: | :--------: | :-------: | :---: | :------: |
-| [`Highs`][Highs]       |  **—**  |      **—**       |     ✓      |      **✓**       |  —†   |   **✓**    |     —     | **✓** |  **✓**   |
-| [`Clarabel`][Clarabel] |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
-| [`Pounce`][Pounce]     |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |    —     |
-| [`Gurobi`][Gurobi]     |    ✓    |        ✓         |   **—**    |      **✓**       | **✓** |   **✓**    |   **✓**   | **✓** |  **✓**   |
-| [`Mosek`][Mosek]      |    ✓    |        ✓         |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓** |  **✓**   |
-| [`Baron`][Baron]       |    ✓    |        ✓         |   **—**    |        —         | **✓** |     —      |   **✓**   | **✓** |  **✓**   |
-| [`Gams`][Gams]         |    ✓    |        ✓         |   **—**    |        —         |   —   |     —      |  **✓**¶   | **✓** |  **✓**   |
+| Backend                | License | Separate install | C compiler | Direct interface |  IIS  | Warm start | Sol. pool | Duals  | Parallel |
+| ---------------------- | :-----: | :--------------: | :--------: | :--------------: | :---: | :--------: | :-------: | :----: | :------: |
+| [`Highs`][Highs]       |  **—**  |      **—**       |     ✓      |      **✓**       |  —†   |   **✓**    |     —     | **✓**  |  **✓**   |
+| [`Clarabel`][Clarabel] |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓**  |  **✓**   |
+| [`Pounce`][Pounce]     |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓**  |    —     |
+| [`Scip`][Scip]         |  **—**  |      **—**       |   **—**    |      **✓**       |   —   |   **✓**    |   **✓**   | **✓**‡ |  **✓**   |
+| [`Gurobi`][Gurobi]     |    ✓    |        ✓         |   **—**    |      **✓**       | **✓** |   **✓**    |   **✓**   | **✓**  |  **✓**   |
+| [`Mosek`][Mosek]       |    ✓    |        ✓         |   **—**    |      **✓**       |   —   |   **✓**    |     —     | **✓**  |  **✓**   |
+| [`Baron`][Baron]       |    ✓    |        ✓         |   **—**    |        —         | **✓** |     —      |   **✓**   | **✓**  |  **✓**   |
+| [`Gams`][Gams]         |    ✓    |        ✓         |   **—**    |        —         |   —   |     —      |  **✓**¶   | **✓**  |  **✓**   |
 
 Column meanings:
 
 - **License:** the underlying solver is commercial and needs a license at runtime. The oximo wrapper crates are all MIT OR Apache-2.0.
-- **Direct interface:** talks to the solver in-process. C API/FFI for HiGHS, Gurobi, and MOSEK. Pure Rust for Clarabel and Pounce. BARON and GAMS instead exchange model/result files (`.bar`, `.gms`) with an external executable.
+- **Direct interface:** talks to the solver in-process. C API/FFI for HiGHS, SCIP, Gurobi, and MOSEK. Pure Rust for Clarabel and Pounce. BARON and GAMS instead exchange model/result files (`.bar`, `.gms`) with an external executable.
 - **C compiler:** whether a C/C++ compiler is required at build time.
 - **IIS:** computes an irreducible infeasible set to explain an infeasible model.
 - **Warm start:** persistent handle for incremental re-solves.
@@ -65,8 +76,41 @@ Footnotes:
 
 - **†** The `highs` crate does not support IIS yet.
 - **¶** GAMS's pool and duals come from the underlying sub-solver's GDX output (e.g. CPLEX `solnpool`).
+- **‡** SCIP returns LP duals and reduced costs only when it can certify a complete original-model LP solution.
 
-A backend rejects model kinds it can't handle, so check [`Model::kind()`][Model] if a solve returns [`SolverError::UnsupportedKind`][SolverError].
+Clarabel's build requirements above describe the base `clarabel` feature.
+SDP adds native BLAS/LAPACK dependencies. Compiler and installation requirements
+depend on the [selected provider](../installation/#clarabel-sdp).
+
+### Checking model compatibility
+
+Use `validate_model` with the options you intend to solve with. It checks the
+complete combination of constraints, objective, and variable domains, including
+backend restrictions that a `ModelKind` alone cannot express:
+
+```rust
+let mut solver = Highs;
+let options = HighsOptions::default();
+let validation = solver.validate_model(&m, &options);
+for diagnostic in &validation.errors {
+    eprintln!("{}: {}", diagnostic.location(), diagnostic.reason);
+}
+validation.into_result()?;
+let result = solver.solve(&m, &options)?;
+```
+
+Validation uses the complete model structure, selected options, and actual
+function data.
+
+Individual support does not establish that constructs can be combined: HiGHS
+accepts integer linear models and continuous quadratic objectives separately,
+but rejects MIQP.
+
+| `Capability`                 | Meaning                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `Native`                     | The backend implements the interface; whole-model and data checks still apply.        |
+| `Unsupported`                | The query found no supported interface.                                               |
+| `RequiresValidation(reason)` | The signature alone is insufficient; actual function data or options must be checked. |
 
 ## HiGHS
 
@@ -99,7 +143,9 @@ Common [`HighsOptions`][HighsOptions]:
 
 ## Clarabel
 
-[`Clarabel`][Clarabel] is a pure-Rust conic interior-point solver. No install, no license. It handles continuous LP, QP (convex quadratic objectives), and SOCP models.
+[`Clarabel`][Clarabel] is a conic interior-point solver. The base `clarabel`
+feature is pure Rust, requires no external solver installation or license,
+and handles continuous LP, QP (convex quadratic objectives), and SOCP models.
 
 ```rust
 use oximo::prelude::*;
@@ -107,6 +153,23 @@ use oximo::solvers::Clarabel;
 
 let result = Clarabel.solve(&m, &ClarabelOptions::default())?;
 ```
+
+### Semidefinite models
+
+Enable `clarabel-sdp` with BLAS/LAPACK linkage, or select a provider feature
+such as `clarabel-sdp-mkl`; see [Installation](../installation/#clarabel-sdp).
+This adds continuous SDP with real symmetric affine PSD blocks, linear rows,
+and SOC constraints. Objectives may be affine or convex quadratic when
+minimizing (concave quadratic when maximizing). General quadratic constraints,
+nonlinear expressions, and integer variables are unsupported on this path.
+
+`Clarabel.persistent()` updates compatible numerical data between solves.
+Changes to cone structure rebuild the solver. Chordal decomposition,
+presolve, or dropped structural zeros can also prevent a native update, in
+which case oximo rebuilds automatically.
+
+Primal and PSD dual matrices are available through the
+[matrix result accessors](../results/#psd-matrix-results).
 
 ## POUNCE
 
@@ -171,6 +234,51 @@ The backend manages `print_level`, `max_cpu_time`, `warm_start_init_point`, and
 `hessian_approximation`. Configure those through the corresponding oximo options
 or persistent handle.
 
+## SCIP
+
+[`Scip`][Scip] solves LP, MILP, QP, MIQP, QCP, MIQCP, SOCP, MISOCP, NLP,
+and MINLP models through `russcip`. Enable `scip` to download bundled SCIP
+binaries at build time:
+
+```toml
+[dependencies]
+oximo = { version = "0.8", features = ["scip"] }
+```
+
+```rust
+use oximo::prelude::*;
+use oximo::solvers::Scip;
+use oximo::ScipOptions;
+
+let result = Scip::new().solve(&m, &ScipOptions::default()
+    .mip_gap(0.01)
+    .node_limit(10_000))?;
+```
+
+For an existing SCIP installation, use `scip-system` instead of `scip`. Set
+`SCIPOPTDIR` to a SCIP development tree containing `include/scip` headers and
+`lib/libscip*`, or let the build find SCIP via `CONDA_PREFIX` or standard system
+paths. The system build generates bindings with libclang. The `scip` and
+`scip-system` features cannot be combined.
+
+SCIP supports native SOS1/SOS2 sets, affine indicator constraints,
+semi-continuous and semi-integer variables, and explicit second-order cones.
+Nonlinear expressions support arithmetic, division, constant powers, negation,
+abs, sqrt, exp, log, sin, and cos. Nonlinear objectives are translated using
+an auxiliary variable and an epigraph or hypograph constraint.
+
+`ScipOptions` includes universal time, thread, and verbosity controls, typed
+SCIP limits and tolerances, and `.param(name, value)` for other supported
+parameters. `.concurrent(true)` enables SCIP's concurrent solver; the thread
+option alone only sets the maximum thread count.
+
+`Scip::new().persistent()` reuses compatible models across solves and accepts
+append-only variables and constraints. `solve_detailed` also returns SCIP
+statistics and values for columns generated by pricers. `Scip::with_plugins`
+registers event handlers, separators, pricers, branching rules, heuristics,
+constraint handlers, and node selectors. Custom Rust plugins cannot be used
+with concurrent solving.
+
 ## Gurobi
 
 [`Gurobi`][Gurobi] uses [`gurobi-rs`](https://crates.io/crates/gurobi-rs) when the
@@ -182,7 +290,7 @@ Gurobi license is active.
 
 ```toml
 [dependencies]
-oximo = { version = "0.7", features = ["gurobi"] }
+oximo = { version = "0.8", features = ["gurobi"] }
 ```
 
 ```rust
@@ -207,8 +315,8 @@ Common [`GurobiOptions`][GurobiOptions]:
 
 ## MOSEK
 
-`Mosek` supports LP, MILP, convex QP/MIQP, convex QCP/MIQCP, and
-SOCP/MISOCP models. It requires the `mosek` Cargo feature, a licensed MOSEK
+`Mosek` supports LP, MILP, convex QP/MIQP, convex QCP/MIQCP,
+SOCP/MISOCP, and continuous SDP models. It requires the `mosek` Cargo feature, a licensed MOSEK
 11.2 installation, and `MOSEK_BINDIR_112` when MOSEK is outside its default
 location. MOSEK validates the convexity of quadratic data. The backend links
 through the [`mosek`](https://crates.io/crates/mosek) crate.
@@ -222,7 +330,7 @@ Only MOSEK 11.2 is currently supported.
 
 ```toml
 [dependencies]
-oximo = { version = "0.7", features = ["mosek"] }
+oximo = { version = "0.8", features = ["mosek"] }
 ```
 
 ```rust
@@ -240,6 +348,18 @@ let result = Mosek.solve(&m, &MosekOptions::default()
 options such as `time_limit`, `threads`, and `verbose` are applied first.
 MOSEK-specific parameter builders are then applied in call order.
 
+### Semidefinite models
+
+The MOSEK backend supports real symmetric affine PSD blocks through the
+existing `mosek` feature. The current SDP path requires an affine objective and
+accepts linear and SOC constraints alongside PSD blocks. Quadratic objectives
+with PSD blocks and mixed integer SDP are rejected; use
+`Mosek.validate_model(&m, &options)` before selecting this backend.
+
+`Mosek.persistent()` currently rebuilds SDP tasks on each solve, including
+parameter-only changes. Primal and PSD dual matrices use the same
+[result accessors and conventions](../results/#psd-matrix-results) as Clarabel.
+
 ## BARON
 
 [`Baron`][Baron] is a global solver for LP/MILP/QP/MIQP/QCP/MIQCP/SOCP/MISOCP/
@@ -250,7 +370,7 @@ on `PATH`, and exchanges model and result files with the external executable.
 
 ```toml
 [dependencies]
-oximo = { version = "0.7", features = ["baron"] }
+oximo = { version = "0.8", features = ["baron"] }
 ```
 
 ```rust
@@ -273,7 +393,7 @@ indicator handling is sub-solver-specific.
 
 ```toml
 [dependencies]
-oximo = { version = "0.7", features = ["gams"] }
+oximo = { version = "0.8", features = ["gams"] }
 ```
 
 ```rust
@@ -308,6 +428,7 @@ translation is unavailable.
 [HighsMethod]: https://docs.rs/oximo/latest/oximo/prelude/enum.HighsMethod.html
 [Clarabel]: https://docs.rs/oximo-clarabel/latest/oximo_clarabel/struct.Clarabel.html
 [Pounce]: https://docs.rs/oximo-pounce/latest/oximo_pounce/struct.Pounce.html
+[Scip]: https://docs.rs/oximo-scip/latest/oximo_scip/struct.Scip.html
 [Gurobi]: https://docs.rs/oximo-gurobi/latest/oximo_gurobi/struct.Gurobi.html
 [GurobiOptions]: https://docs.rs/oximo-gurobi/latest/oximo_gurobi/struct.GurobiOptions.html
 [Mosek]: https://docs.rs/oximo-mosek/latest/oximo_mosek/struct.Mosek.html

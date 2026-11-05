@@ -1,0 +1,23 @@
+[package]
+name = "oximo-docs-examples-v0_8_0"
+version = "0.8.0"
+edition = "2024"
+rust-version = "1.89"
+publish = false
+description = "Runnable scripts reproducing the oximo v0.8.0 docs examples"
+
+[dependencies]
+oximo = { version = "0.8.0", features = ["highs", "gdp"] }
+
+[features]
+clarabel = ["oximo/clarabel"]
+clarabel-sdp = ["clarabel", "oximo/clarabel-sdp"]
+clarabel-sdp-openblas = ["clarabel-sdp", "oximo/clarabel-sdp-openblas"]
+clarabel-sdp-mkl = ["clarabel-sdp", "oximo/clarabel-sdp-mkl"]
+clarabel-sdp-accelerate = ["clarabel-sdp", "oximo/clarabel-sdp-accelerate"]
+pounce = ["oximo/pounce"]
+scip = ["oximo/scip"]
+gurobi = ["oximo/gurobi"]
+mosek = ["oximo/mosek"]
+gams = ["oximo/gams"]
+baron = ["oximo/baron"]

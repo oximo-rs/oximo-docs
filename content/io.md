@@ -197,8 +197,16 @@ If you don't need file export, opt out of the `io` feature to drop the dependenc
 
 ```toml
 [dependencies]
-oximo = { version = "0.7", default-features = false, features = ["highs"] }
+oximo = { version = "0.8", default-features = false, features = ["highs"] }
 ```
+
+## Semidefinite constraints
+
+The MPS, LP, and NL writers do not support active PSD constraints. Writing
+such a model returns `IoError::Conic`, including when other expressions make
+its model kind `QCP` or `NLP`. Inactive PSD blocks are skipped.
+
+Solve SDP models directly with [Clarabel or MOSEK](../solvers/#model-kind-support).
 
 [Model]: https://docs.rs/oximo/latest/oximo/prelude/struct.Model.html
 [Variable]: https://docs.rs/oximo/latest/oximo/prelude/struct.Variable.html

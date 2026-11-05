@@ -64,21 +64,15 @@ variable!(m, x1 >= 0.0);
 objective!(m, Max, p1 * x1);
 
 for price in [1.0, 1.6, 2.0] {
-    p1.set_param_value(price)?;
+    p1.set_param_value(price);
     let result = Highs.solve(&m, &HighsOptions::default())?;
     println!("{price} -> {:?}", result.objective());
 }
 ```
 
 A parameter times a variable stays linear, so the model kind is unchanged by re-binding.
-Re-binding returns a `ModelError` when the write is invalid, for example a
-non-finite value or a bound-ordering conflict, and leaves the previous value in
-place.
 
 For parameter sweeps, it is recommended to use a `Persistent` solver if available. See [Solvers](../solvers/) for details.
-
-Each solve captures the parameter values used by the backend;
-see [Results > Parameter snapshots and scenario queries](../results/#parameter-snapshots-and-scenario-queries).
 
 ## Index sets
 
@@ -130,7 +124,7 @@ variable!(m, z[a in rows, b in cols], Bin); // multi-index (Cartesian product)
 let e1 = x[("seattle", "nyc")];
 let e2 = z[a, b];
 
-// Per-key bounds may reference the index, including a per-key parameter.
+// Per-key bounds may reference the index.
 variable!(m, 0.0 <= w[(p, q) in routes] <= capacity_for(&p, &q));
 variable!(m, v[k in items], lb = 0.0, ub = cap[k]);
 
@@ -149,12 +143,7 @@ let lhs = x + 2.0 * y - 3.0 * z;
 let rhs = 4.0 * x + 5.0;
 ```
 
-Expressions carry a degree in their Rust type: constant, affine, quadratic,
-nonlinear, or dynamic. For example, `x.square()` and `x * x` are statically
-quadratic, while `x.powi(n)` has a dynamic degree because `n` is a runtime value.
-Use `expr.try_affine()?` or `expr.try_quadratic()?` when an API requires a checked
-narrower degree. Use `expr.erase()` when a collection needs to hold expressions
-of different degrees.
+Behind the scenes oximo uses arena-allocated expression trees ([`oximo-expr`][oximo-expr]), so combining large [`Expr`][Expr]s stays cheap.
 
 ## Aggregating over sets
 
@@ -168,7 +157,7 @@ filters to build one flattened minimum or maximum expression. Their domains
 must contain at least one selected key.
 
 Empty sums are handled as the additive identity when the model is known. Sums
-inside `constraint!`, `objective!`, `soc_constraint!`, and `psd_constraint!` inherit that macro's
+inside `constraint!`, `objective!`, and `soc_constraint!` inherit that macro's
 model automatically, including nested sums and filtered domains:
 
 ```rust
@@ -217,126 +206,6 @@ constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 
 For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
 
-SOC components and bounds, PSD matrix entries, and indicator consequents must
-have constant or affine Rust types. Narrow dynamic expressions explicitly with
-`try_affine()` before passing them to these constructors:
-
-```rust
-let m = Model::new("checked affine input");
-
-variable!(m, x);
-variable!(m, t >= 0.0);
-
-let component = x.powi(1).try_affine().expect("component must be affine");
-soc_constraint!(m, [component] <= t);
-```
-
-Narrowing checks the expression at runtime and returns an error if it is not
-affine. Calling `erase()` produces a dynamic type and does not satisfy this
-requirement. Ordinary scalar constraints still accept dynamic and nonlinear
-expressions directly.
-
-### Functions in sets
-
-A constraint means that a function's value belongs to a set. The familiar
-`x <= 5.0` pairs an affine function with `LessThan(5.0)`; `>=`, `==`, and
-constant two-sided bounds use `GreaterThan`, `EqualTo`, and `Interval`.
-SOC and PSD declarations similarly require membership in a cone.
-
-The macros create these pairs for you. When building constraints in a helper
-function, you can also register a pair directly:
-
-```rust
-let cap = m.add_constraint(
-    "capacity",
-    Constraint::new((2.0 * x + y).into_function(), LessThan(100.0)),
-);
-```
-
-Registration preserves the original function and set, including symbolic
-parameters. A mathematically valid pair still needs a compatible backend;
-see [Checking model compatibility](../solvers/#checking-model-compatibility).
-
-### Handles and updates
-
-Capture the return value of a declaration to keep its typed, model-bound handle.
-
-```rust
-let cap = constraint!(m, capacity, x <= 5.0);
-m.set_constraint_set(cap, LessThan(8.0))?;
-m.set_constraint_function(cap, (2.0 * x).into_function())?;
-m.set_constraint_active(cap, false)?;
-m.set_constraint_active(cap, true)?;
-```
-
-Updates preserve the ID and the function/set types. To replace `LessThan` with
-`EqualTo`, or an affine function with a quadratic one, deactivate the old
-constraint and add a new one. Invalid bounds, incompatible dimensions, and handles
-from another model are rejected.
-
-For a collection of different constraint types, store `handle.erase()`.
-
-After an SOS or indicator has been reformulated, its source cannot be edited
-or reactivated.
-
-## Semidefinite constraints
-
-A positive semidefinite (PSD) constraint requires every eigenvalue of a real
-symmetric matrix to be nonnegative. Use `symmetric_variable!` to declare its
-entries and `psd_constraint!` to require the matrix to be PSD. A symmetric
-variable declaration alone creates free continuous variables and it does not
-impose positivity or bounds.
-
-### Symmetric matrices
-
-`symmetric_variable!(m, X[n])` returns a `SymmetricMatrix<Expr<Affine>>` with
-`n * (n + 1) / 2` independent variables. Mirrored entries refer to the same
-variable. Use `X[(i, j)]` in Rust expressions, while modeling macros also accept
-the `X[i, j]` notation. The side dimension must be positive.
-
-For numeric matrix data, dense rows avoid triangle ordering:
-
-```rust
-let c = SymmetricMatrix::try_from_rows([[2.0, 1.0], [1.0, 2.0]])?;
-let identity = SymmetricMatrix::<f64>::identity(2);
-println!("C = {c}");
-println!("I = {identity}");
-```
-
-Matrices support addition, subtraction, negation, scalar multiplication,
-`trace()`, and `frobenius(&other)`. `frobenius` computes the full matrix inner
-product, counting each stored off-diagonal product twice. Matrices combined by
-arithmetic must have matching dimensions.
-
-### Affine matrix inequalities
-
-A PSD constraint can contain any symmetric matrix of constant or affine
-entries, including symbolic parameters.
-For example, minimizing `t` subject to `t I - C` being PSD gives the largest
-eigenvalue of `C`. The eigenvalues of `t I - C` are `t` minus those of `C`, so
-PSD membership requires `t` to be at least the largest eigenvalue.
-
-Quadratic and nonlinear matrix entries are rejected. The current SDP support is
-limited to real symmetric matrices.
-
-### Names, families, and activity
-
-PSD declarations support named, anonymous, computed-name, indexed, and filtered
-forms. For a symmetric matrix variable `X`:
-
-```rust
-let identity = SymmetricMatrix::<f64>::identity(2);
-let shifts = [0.0, 1.0, 2.0];
-psd_constraint!(m, shifted[i in 0..shifts.len()], &X + shifts[i] * &identity);
-let extra = psd_constraint!(m, name = "extra positivity".to_owned(), &X);
-m.set_psd_active(extra, false)?;
-```
-
-A scalar declaration returns a `PsdConstraintHandle`. Retrieve a registered
-handle with `m.psd_constraint_handle("shifted[0]")`. PSD constraints have their
-own registry, separate from scalar and SOC constraints. Inactive PSD blocks
-are excluded from solving and model-kind classification.
-
 ## Indicator constraints
 
 The [`indicator_constraint!`][indicator_constraint] macro applies an affine
@@ -378,7 +247,7 @@ indicator_constraint!(
 );
 ```
 
-Gurobi, MOSEK, and SCIP consume indicators natively. GAMS supports them when an
+Gurobi and MOSEK consume indicators natively. GAMS supports them when an
 explicit COPT, CPLEX, Gurobi, SCIP, or Xpress sub-solver is selected. Other
 backends return `SolverError::UnsupportedIndicator` while active indicators
 remain in the model. To use one of those backends, explicitly replace the
@@ -400,18 +269,12 @@ let result = Highs.solve(&m, &HighsOptions::default())?;
 ```
 
 `Model::reformulate_indicators` changes the model in place without cloning it
-and returns artifacts containing `GeneratedConstraintId` values. To retain the
+and returns artifacts containing the generated constraint IDs. To retain the
 native-indicator model, use `m.to_reformulated_indicator_model(options)` to make
 an independent transformed model. Both forms preserve source indicator IDs,
 mark the sources inactive, and record generated constraint IDs in
 `indicator_reformulations()`. They add no variables. For one indicator, use its
-handle's `reformulate(&m, options)` or `to_reformulated_model(&m, options)` method.
-
-To query a transformed copy's results with your original model's handles,
-use [source-result projection](../results/#results-after-reformulation).
-
-Each returned report supports `println!("{report}")` for a summary and
-`report.display(&m)` for the source indicator and generated algebraic rows.
+handle's `reformulate(options)` or `to_reformulated_model(options)` method.
 
 Each finite side of an indicator gets a Big-M row. oximo derives M from the
 body's affine coefficients and variable bounds, including the zero option for
@@ -483,7 +346,7 @@ m.add_sos_constraint_auto_weights("one_choice", SosType::Sos1, members);
 Use `Model::add_sos_constraint` instead when supplying explicit weights from a
 runtime iterator.
 
-Backends with native SOS support, such as Gurobi and SCIP, consume these constraints
+Backends with native SOS support, such as Gurobi, consume these constraints
 directly. Other backends reject a model while it still contains active SOS
 constraints. oximo never changes the formulation implicitly, but you can
 explicitly replace every active SOS with a portable MILP formulation before
@@ -497,7 +360,7 @@ let m = Model::new("reformulated_sos");
 variable!(m, 0.0 <= x <= 10.0);
 variable!(m, 0.0 <= y <= 10.0);
 variable!(m, 0.0 <= z <= 10.0);
-let choice = sos_constraint!(m, choice, SOS1, [x, y, z]);
+sos_constraint!(m, choice, SOS1, [x, y, z]);
 objective!(m, Max, x + 2.0 * y + 3.0 * z);
 
 // Uses each member's finite bounds as its Big-M values. The source SOS is
@@ -515,25 +378,6 @@ solve it with Gurobi as well—produce an independent transformed model instead:
 let reformulated = m.to_reformulated_sos_model(SosReformulationOptions::default())?;
 let result = Highs.solve(&reformulated, &HighsOptions::default())?;
 ```
-
-To query these results with the original `x`, `y`, and `z` handles, use
-[source-result projection](../results/#results-after-reformulation).
-
-Each returned report supports `println!("{report}")` for a compact summary.
-Use `report.display(&m)` to include the source SOS, generated variable names and
-bounds, and algebraic rows:
-
-```rust
-for report in &artifacts {
-    println!("{}", report.display(&m));
-}
-```
-
-For programmatic variable inspection, use `report.generated_variables(&m)`
-to access read-only metadata directly.
-
-To reformulate only one SOS constraint, call
-`choice.reformulate(&m, options)` or `choice.to_reformulated_model(&m, options)`.
 
 A member needs finite bounds in every direction in which it can be nonzero. If
 that is not available, pass a positive finite fallback to the in-place call
@@ -604,8 +448,8 @@ linear terms and indexed aggregations. [`Expr`][Expr] provides:
 // Rosenbrock NLP
 objective!(m1, Min, (1.0 - x).powi(2) + 100.0 * (y - x.powi(2)).powi(2));
 
-// Quadratic expression (this disk may be recognized as a second-order cone)
-constraint!(m2, disk, x.square() + y.square() <= 1.0);
+// Quadratic constraint (model kind: QCP)
+constraint!(m2, disk, x.powi(2) + y.powi(2) <= 1.0);
 
 // Second-order cone ||(x, y)|| <= t (model kind: SOCP)
 soc_constraint!(m3, cone, [x, y] <= t);
@@ -617,47 +461,7 @@ objective!(m4, Max, sum!(u[i] * (1.0 + w[i] * x[i]).log() for i in items));
 constraint!(m5, response, x.exp() + y.tanh() <= x.max(y) + 3.0);
 ```
 
-Check the inferred [`ModelKind`][ModelKind] with [`Model::kind()`][Model]. It
-summarizes the built-in algebraic and conic views. Use
-[`validate_model`](../solvers/#checking-model-compatibility) to check whether the
-chosen backend accepts the complete model, its declared pairs, and options.
-
-## Incremental affine construction
-
-Use `model.affine_builder()` to construct an affine expression by adding
-terms incrementally, without creating intermediate addition nodes. The
-builder accepts constant or affine terms (weighted sums of variables plus a
-constant) from the same model.
-
-```rust
-use oximo::prelude::*;
-
-let m = Model::new("incremental terms");
-variable!(m, x[i in 0..3]);
-
-let mut builder = m.affine_builder();
-for (i, weight) in [2.0, 3.0, 4.0].into_iter().enumerate() {
-    builder.add_term(weight, x[i]);
-}
-builder.add_constant(5.0);
-let lhs = builder.build();
-constraint!(m, capacity, lhs <= 100.0);
-```
-
-`build()` returns an affine expression, resets the pending terms and constant,
-and retains scratch capacity for reuse in the next row. Numeric terms are
-combined into a compact expression. Parameter-dependent terms stay symbolic.
-
-Combining affine terms can change how floating-point additions are grouped.
-Mathematically equivalent constructions may therefore produce different
-coefficients, especially when large terms cancel.
-
-For repeated contributions to a coefficient with large magnitude differences,
-choose `model.compensated_affine_builder()`. Supplying the original weights
-`[1e16, 1.0, -1e16]` for the same variable retains the coefficient `1`, while
-ordinary floating-point accumulation gives `0`. Compensated summation is
-explicit and uses additional arithmetic and scratch storage. It cannot recover
-rounding already present in an input expression.
+Check the inferred kind with [`Model::kind()`][Model], which returns a [`ModelKind`][ModelKind]. Backends reject kinds they don't support. See [Printing & Debugging](../debugging/#checking-the-model-kind).
 
 ## Next steps
 

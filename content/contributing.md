@@ -1,7 +1,7 @@
 +++
 title = "Contributing"
 description = "Report bugs, improve the docs, and send code to oximo."
-weight = 8
+weight = 9
 +++
 
 All contributions are welcome: bug reports, documentation fixes, tests, and code. Everything happens on [GitHub][repo].

@@ -26,7 +26,7 @@ Enable the `gdp` feature on `oximo`:
 
 ```toml
 [dependencies]
-oximo = { version = "0.7.0", features = ["gdp", "highs"] }
+oximo = { version = "0.8.0", features = ["gdp", "highs"] }
 ```
 
 In this case, `gdp` provides modeling and reformulation while `highs` provides
