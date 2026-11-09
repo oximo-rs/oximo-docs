@@ -40,7 +40,7 @@ Each row summarizes the backend's coverage of [`ModelKind`][ModelKind]. This is 
 | [`Baron`][Baron]       | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
 | [`Gams`][Gams]         | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓** | **✓**  |   —    |   —   | **✓** | **✓** |
 
-`Gams` accepts every kind at the oximo layer, but the actual coverage is the GAMS sub-solver's. Pick one that handles the kind you emit.
+The GAMS adapter accepts every model kind at the oximo layer, but actual support depends on the selected sub-solver. Choose one that handles the kind you emit.
 
 **¹** Clarabel requires an [SDP feature and BLAS/LAPACK provider](../installation/#clarabel-sdp).
 
@@ -64,7 +64,7 @@ Deployment cost and diagnostic/solve capability per backend.
 Column meanings:
 
 - **License:** the underlying solver is commercial and needs a license at runtime. The oximo wrapper crates are all MIT OR Apache-2.0.
-- **Direct interface:** talks to the solver in-process. C API/FFI for HiGHS, SCIP, Gurobi, and MOSEK. Pure Rust for Clarabel and Pounce. BARON and GAMS instead exchange model/result files (`.bar`, `.gms`) with an external executable.
+- **Direct interface:** talks to the solver in-process. C API/FFI for HiGHS, SCIP, Gurobi, and MOSEK. Pure Rust for Clarabel and POUNCE. BARON and GAMS instead exchange model/result files (`.bar`, `.gms`) with an external executable.
 - **C compiler:** whether a C/C++ compiler is required at build time.
 - **IIS:** computes an irreducible infeasible set to explain an infeasible model.
 - **Warm start:** persistent handle for incremental re-solves.
@@ -213,7 +213,7 @@ time-limit hook, with a time limit, Auto uses NLP.
 
 ### Options
 
-PounceOptions provides dedicated setters and typed builders for POUNCE's
+`PounceOptions` provides dedicated setters and typed builders for POUNCE's
 option reference:
 
 ```rust
@@ -363,7 +363,7 @@ parameter-only changes. Primal and PSD dual matrices use the same
 ## BARON
 
 [`Baron`][Baron] is a global solver for LP/MILP/QP/MIQP/QCP/MIQCP/SOCP/MISOCP/
-NLP/MINLP models. The Oximo adapter supports all of these model kinds and
+NLP/MINLP models. The oximo adapter supports all of these model kinds and
 translates explicit second-order cones to BARON's quadratic constraint
 representation. It requires the `baron` feature, a licensed BARON installation
 on `PATH`, and exchanges model and result files with the external executable.
