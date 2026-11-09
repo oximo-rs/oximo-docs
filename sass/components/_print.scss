@@ -122,6 +122,11 @@
   }
 
   // Tables
+  .table-scroll {
+    max-width: none;
+    overflow: visible;
+  }
+
   table {
     border-collapse: collapse;
     width: 100%;

@@ -63,6 +63,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ get_url(path='js/table-scroll.js') | safe }}" defer></script>
 {% if page.extra.math | default(value=false) %}
 {% include "partials/math-scripts.html" %}
 {% endif %}

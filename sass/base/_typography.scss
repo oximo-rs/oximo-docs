@@ -325,6 +325,43 @@ table {
   font-size: var(--text-sm);
 }
 
+.table-scroll {
+  position: relative;
+  max-width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+
+  > table {
+    margin: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .table-scroll--overflowing::after {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 1;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+    content: "Swipe to see more ->";
+    font-size: var(--text-xs);
+    line-height: 1.25;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .table-scroll--scrolled::after {
+    opacity: 0;
+  }
+}
+
 th, td {
   padding: 0.75rem 1rem;
   text-align: left;
