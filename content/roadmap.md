@@ -16,7 +16,7 @@ active design, and **Considering** is an idea we like but have not committed to.
 
 ## Solvers
 
-- [ ] **IIS for HiGHS.** Provide Irreducible Infeasibility System for the HiGHS backend. See [highs#47](https://github.com/rust-or/highs/issues/47). _(Planned)_
+- [ ] **IIS for HiGHS.** Provide Irreducible Infeasible Subsystem for the HiGHS backend. See [highs#47](https://github.com/rust-or/highs/issues/47). _(Planned)_
 - [x] **SCIP backend.** Available through `russcip`, with bundled and system
       installation options, mixed-integer nonlinear models, and persistent solves.
       See [Solvers > SCIP](../solvers/#scip).
