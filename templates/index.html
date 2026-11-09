@@ -167,105 +167,10 @@
 </div>
 
 
-<script>
-(function(){
-    function fallbackCopy(text) {
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.setAttribute('readonly', '');
-        textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        textarea.setSelectionRange(0, textarea.value.length);
-        var copied = false;
-        try {
-            copied = document.execCommand('copy');
-        } catch (error) {
-            copied = false;
-        }
-        document.body.removeChild(textarea);
-        return copied;
-    }
 
-    function copyText(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text)
-                .then(function(){ return true; })
-                .catch(function(){ return fallbackCopy(text); });
-        }
-        return Promise.resolve(fallbackCopy(text));
-    }
-
-    document.querySelectorAll('[data-copy]').forEach(function(btn){
-        btn.addEventListener('click', function(){
-            var text = btn.getAttribute('data-copy');
-            var label = btn.querySelector('.docs-home__install-copy-label');
-            var prev = label ? label.textContent : null;
-            copyText(text).then(function(copied){
-                if (!copied) {
-                    if (label) label.textContent = 'Copy failed';
-                    window.setTimeout(function(){
-                        if (label && prev !== null) label.textContent = prev;
-                    }, 1600);
-                    return;
-                }
-                btn.classList.add('is-copied');
-                if (label) label.textContent = 'Copied';
-                window.setTimeout(function(){
-                    btn.classList.remove('is-copied');
-                    if (label && prev !== null) label.textContent = prev;
-                }, 1600);
-            });
-        });
-    });
-})();
-</script>
-
-<script>
-(function(){
-    var CELL = 30, MAX = 2400;
-    var panels = document.querySelectorAll('.home-grid');
-    if(!panels.length) return;
-    var mq = window.matchMedia('(min-width: 1340px)');
-
-    function build(){
-        var sizes = Array.prototype.map.call(panels, function(p){
-            if(!mq.matches) return null;
-            return { panel: p, width: p.clientWidth, height: p.clientHeight };
-        });
-        sizes.forEach(function(size){
-            var p = size && size.panel;
-            if(!p) {
-                return;
-            }
-            p.textContent = '';
-            var w = size.width, h = size.height;
-            if(w < 40 || h < 40) return;
-            var cols = Math.max(1, Math.round(w / CELL));
-            var rows = Math.max(1, Math.round(h / CELL));
-            var count = Math.min(cols * rows, MAX);
-            p.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
-            p.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
-            var frag = document.createDocumentFragment();
-            for(var i = 0; i < count; i++){
-                var c = document.createElement('span');
-                c.className = 'home-grid__cell';
-                frag.appendChild(c);
-            }
-            p.appendChild(frag);
-        });
-    }
-
-    var t;
-    function schedule(){ clearTimeout(t); t = setTimeout(build, 150); }
-    build();
-    window.addEventListener('resize', schedule);
-    if(mq.addEventListener) mq.addEventListener('change', build);
-})();
-</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ get_url(path='js/home.js') | safe }}" defer></script>
 {% include "partials/math-scripts.html" %}
 {% endblock %}

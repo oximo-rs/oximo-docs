@@ -1,5 +1,6 @@
 @use "common";
 @use "components/version-banner";
+@use "components/error-page";
 
 // The page-specific bundles import these styles where they are needed:
 // home.scss for the landing page and docs.scss for documentation pages.
