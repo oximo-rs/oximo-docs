@@ -1,16 +1,16 @@
 // Shared styles used by every rendered page.
 @use "tokens/colors";
 @use "tokens/spacing";
-@use "tokens/typography";
+@use "tokens/typography" as typography-tokens;
 
-@import "base/fonts";
-@import "base/reset";
-@import "base/typography";
+@use "base/fonts";
+@use "base/reset";
+@use "base/typography";
 
-@import "components/layout";
-@import "components/navigation";
-@import "components/theme-toggle";
-@import "components/buttons";
-@import "components/search";
-@import "components/code-actions";
-@import "components/signatures";
+@use "components/layout";
+@use "components/navigation";
+@use "components/theme-toggle";
+@use "components/buttons";
+@use "components/search";
+@use "components/code-actions";
+@use "components/signatures";
