@@ -8,11 +8,10 @@ The [`oximo-io`][oximo_io] crate writes [`Model`][Model]s to the standard text f
 
 Use this when you want to:
 
-- Hand a [`Model`][Model] to a solver oximo doesn't bundle (COPT, SCIP, CPLEX, ...)
+- Hand a [`Model`][Model] to a solver oximo doesn't bundle (COPT, FICO XPress, CPLEX, ...)
 - Feed a nonlinear model to an AMPL-compatible solver via NL
 - Reproduce a bug report against a third-party tool
-- Archive the exact problem instance for later inspection
-- Inspect the model
+- Save an exact, inspectable copy of the problem instance for later analysis or reproduction
 
 ## To a string
 
