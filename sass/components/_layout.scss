@@ -195,6 +195,28 @@
 }
 
 // -----------------------------------------------------------------------------
+// Documentation page headings and descriptions
+// -----------------------------------------------------------------------------
+
+.article__header--docs,
+.section-page__header {
+  margin-bottom: 2.5rem;
+
+  h1 {
+    margin-bottom: 0.75rem;
+  }
+}
+
+.article__description,
+.section-page__description {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+}
+
+// -----------------------------------------------------------------------------
 // Section Spacing
 // -----------------------------------------------------------------------------
 
