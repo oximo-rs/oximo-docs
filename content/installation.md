@@ -24,7 +24,7 @@ cargo add oximo
 ```
 
 This default dependency is enough to construct models and use the MPS, LP, and
-NL I/O APIs. Choose a solver feature before solving a model.
+NL I/O APIs. You will need to choose a solver feature before solving a model.
 
 ### HiGHS
 
