@@ -699,6 +699,27 @@ ordinary floating-point accumulation gives `0`. Compensated summation is
 explicit and uses additional arithmetic and scratch storage. It cannot recover
 rounding already present in an input expression.
 
+### Weighted sums and rounding
+
+`sum!` automatically combines `f64` or `i32` weights with constant or affine
+inputs. This can change floating-point rounding. Add `unfused:` to disable
+automatic fusion:
+
+```rust
+let total = sum!(m, weights[i] * x[i] for i in 0..n);
+let unfused = sum!(m, unfused: weights[i] * x[i] for i in 0..n);
+```
+
+`unfused:` also applies to nested sums. Ordinary operator simplifications and
+explicit `weighted_term` inputs remain active.
+
+Generic code may skip automatic fusion and produce different rounding. Use
+`weighted_term(weight, input)` to request builder accumulation explicitly:
+
+```rust
+let total = sum!(m, weighted_term(weights[i], &terms[i]) for i in 0..n);
+```
+
 ## Incremental quadratic construction
 
 Use `model.quadratic_builder()` when numeric quadratic coefficients or affine
