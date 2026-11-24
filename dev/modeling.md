@@ -241,7 +241,19 @@ constraint!(m, balance, x - y == 0.0);
 constraint!(m, band, 1.0 <= x + y <= 10.0); // two-sided range -> one constraint
 ```
 
-For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro.
+For SOC constraints, use the [`soc_constraint!`][soc_constraint] macro. Write
+`[terms] <= t` for the standard cone `||terms||_2 <= t`, or
+`[terms] in rotated(u, v)` for the rotated cone `||terms||_2^2 <= 2*u*v` with
+`u, v >= 0`:
+
+```rust
+soc_constraint!(m, disk, [x, y] <= t);                // ||(x, y)|| <= t
+soc_constraint!(m, rotated, [x, y] in rotated(u, v)); // x^2 + y^2 <= 2*u*v
+```
+
+Both heads of a rotated cone are affine expressions or plain numbers, such as
+`rotated(t, 1.0)`. The cone itself requires them to be nonnegative, so you do not
+declare separate sign constraints.
 
 SOC components and bounds, PSD matrix entries, and indicator consequents must
 have constant or affine Rust types. Narrow dynamic expressions explicitly with
