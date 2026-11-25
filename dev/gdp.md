@@ -542,11 +542,11 @@ variables at once; see [Affine rows and reference coordinates](#affine-rows-and-
 By default, quadratic rows rely on the same regularized perspective formulation as other nonlinear rows. However, this approach divides by the activation variable, is exact only at binary values, and introduces a dependence on epsilon. Following Gusev and Bernal Neira,
 [Exact Hull Reformulation for Quadratically Constrained Generalized Disjunctive Programs](https://doi.org/10.48550/arXiv.2508.16093), rows with quadratic nonlinearities can instead use an exact Hull formulation that eliminates both division and epsilon.:
 
-| `HullQuadratic` | Generated rows                                                                                                                                | Use with                                                                                               |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `Perspective`   | Regularized perspective (default).                                                                                                            | Solvers that accept general nonlinear expressions.                                                     |
-| `Homogeneous`   | Quadratic rows that are exact at every activation value. A convex source row usually becomes nonconvex.                                       | Global solvers for nonconvex quadratics, such as Gurobi, SCIP, or BARON.                               |
-| `Conic`         | Convex sides become a rotated second-order cone plus a linear row, using one extra variable per side. Other sides use the `Homogeneous` form. | Solvers that detect second-order cones in quadratic rows when your quadratic disjunct rows are convex. |
+| `HullQuadratic` | Generated rows                                                                                                                                | Use with                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `Perspective`   | Regularized perspective (default).                                                                                                            | Solvers that accept general nonlinear expressions.                                         |
+| `Homogeneous`   | Quadratic rows that are exact at every activation value. A convex source row usually becomes nonconvex.                                       | Global solvers for nonconvex quadratics, such as Gurobi, SCIP, or BARON.                   |
+| `Conic(form)`   | Convex sides become a rotated second-order cone plus a linear row, using one extra variable per side. Other sides use the `Homogeneous` form. | Conic solvers such as MOSEK, Gurobi, or SCIP when your quadratic disjunct rows are convex. |
 
 ```rust
 use oximo::prelude::*;
@@ -563,7 +563,7 @@ let left = disjunct!(model, left, |d| {
 disjunction!(model, [upper, left]);
 objective!(model, Max, x + w);
 
-let hull = Hull::default().with_quadratic(HullQuadratic::Conic);
+let hull = Hull::default().with_quadratic(HullQuadratic::Conic(HullConeForm::Explicit));
 let result = Gurobi
     .with_gdp(GdpReformulationOptions::new(hull))
     .solve(&model, &GurobiOptions::default())?;
@@ -575,19 +575,30 @@ rows and all other sides use the `Homogeneous` form. Convexity is checked
 numerically for each block of variables linked by cross terms, and a side whose
 block has more than 512 such variables also uses the `Homogeneous` form.
 
+`HullConeForm` selects how each cone is written:
+
+- `Explicit` adds a rotated second-order cone constraint.
+- `Algebraic` writes the same cone as a quadratic row, for solvers or file
+  formats without cone constraints. Solvers usually still recognize it as a
+  cone.
+
+`with_gdp(...)` switches `Explicit` cones to `Algebraic` when the backend does
+not accept rotated cones, so the same options work with any backend.
+
 Rows that cannot use the requested form at all keep the default perspective.
 This applies to rows whose nonlinear part is not quadratic and to rows that use
 a variable without a Hull copy. These rows, and one-sided sides that are not
 convex or exceed the limit, are listed in `report.hull_quadratic_fallbacks` with
 their reason; see [Quadratic Hull reports](#quadratic-hull-reports).
 
-In nested disjunctions, set the same `with_quadratic` option on enclosing Hull
-disjunctions. An ancestor that
+In nested disjunctions, explicit cones stay exact cones through every Hull
+ancestor, unless an ancestor selects `Conic(HullConeForm::Algebraic)`, which
+writes them as quadratic rows. A Big-M ancestor keeps cones that are local to
+its branch and relaxes the others as quadratic rows. For algebraic cones and
+other quadratic rows, set the same `with_quadratic` option on enclosing Hull
+disjunctions: an ancestor that
 [enumerates inclusive patterns](#inclusive-selection) with `Perspective` turns
-nested quadratic rows, including cones, back into regularized perspectives.
-Cone rows whose activation is a complement `1 - b` (`activation_kind` is
-`Complement` in the report) are exact and convex, but solvers may not detect
-them as cones.
+them back into regularized perspectives.
 
 #### Inclusive selection
 
@@ -632,10 +643,11 @@ let result = Highs
 println!("flow: {:?}", result.value_of(flow)?);
 ```
 
-Other generated variables and multipliers for generated rows are omitted,
-including auxiliaries from earlier SOS or indicator reformulations. This also
-applies to duals retrieved through `dual_of`. Variables and ordinary constraints
-declared between solves remain available in later results.
+Other generated variables and multipliers for generated rows and cones are
+omitted, including auxiliaries from earlier SOS or indicator reformulations.
+This also applies to duals retrieved through `dual_of` and `soc_dual_of`.
+Variables, ordinary constraints, and cones declared between solves remain
+available in later results.
 The transformation report is available through
 `model.gdp_reformulations()`; see [Hull activation queries](#hull-copy-and-activation-reports).
 
@@ -1172,7 +1184,16 @@ u^\\top Q u \\le t\\, y, \\qquad t + c^\\top u + d\\, y \\le 0, \\qquad
 $$
 
 The first row is a rotated second-order cone, and \\(U\\) bounds \\(t\\) over
-the variable bounds. A `>=` side uses \\(-Q\\), \\(-c\\), and \\(-d\\). For a copy
+the variable bounds. `HullConeForm::Explicit` factors \\(Q = L L^\\top\\) and
+writes it as
+
+$$
+\\lVert L^\\top u \\rVert_2^2 \\le 2 \\cdot \\tfrac{t}{2} \\cdot y.
+$$
+
+Factor entries that the convexity check treats as zero are dropped, so the
+explicit cone can be looser than \\(u^\\top Q u \\le t\\, y\\) by about that
+tolerance. A `>=` side uses \\(-Q\\), \\(-c\\), and \\(-d\\). For a copy
 with a nonzero [reference](#affine-rows-and-reference-coordinates), Hull adds a
 variable \\(u = z + r y\\) defined by a linear equality, so that \\(y\\) appears
 only in the product with \\(t\\).
@@ -1271,9 +1292,12 @@ println!("{}", report.display(&model));
 
 For programmatic variable inspection, `report.generated_variables(&model)`
 
-Generated variable and row fields use `GeneratedVarId` and
-`GeneratedConstraintId`. Ordinary variable-handle and scalar-row APIs do not
-accept these types directly. Use `id.raw_id()` explicitly when inspecting the
+Generated variable, row, and cone fields use `GeneratedVarId`,
+`GeneratedConstraintId`, and `GeneratedSocConstraintId`. Fields that can hold
+either a row or a cone, such as `report.rows[i].constraints`, use
+`GdpGeneratedConstraint` (`Algebraic` or `SecondOrderCone`, with `algebraic()`
+and `second_order_cone()` accessors). Ordinary variable-handle and scalar-row APIs
+do not accept these types directly. Use `id.raw_id()` explicitly when inspecting the
 transformed model's registries. Use the Hull activation helpers below to query
 activation values retained by `with_gdp`.
 
@@ -1318,11 +1342,11 @@ artifact storage.
 With [`with_quadratic`](#quadratic-rows), three more report fields describe the
 generated artifacts:
 
-| Field                             | Contents                                                                                                                                  |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `report.hull_epigraphs`           | One entry per cone: source row, `side`, the epigraph variable `generated`, its bound `upper`, and the activation, as in `hull_variables`. |
-| `report.hull_unshifted`           | One entry per shifted copy used in a cone: the `copy`, the unshifted variable `generated`, and its defining row in `constraints`.         |
-| `report.hull_quadratic_fallbacks` | Source rows, or row sides, that did not use the requested form. `side` is `None` when the whole row fell back, and `reason` explains why. |
+| Field                             | Contents                                                                                                                                                                                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `report.hull_epigraphs`           | One entry per cone: source row, `side`, the epigraph variable `generated`, its bound `upper`, and the activation, as in `hull_variables`. `cones` lists the generated cone, explicit or algebraic, once per enumerated ancestor pattern. |
+| `report.hull_unshifted`           | One entry per shifted copy used in a cone: the `copy`, the unshifted variable `generated`, and its defining row in `constraints`.                                                                                                        |
+| `report.hull_quadratic_fallbacks` | Source rows, or row sides, that did not use the requested form. `side` is `None` when the whole row fell back, and `reason` explains why.                                                                                                |
 
 ```rust
 for fallback in &report.hull_quadratic_fallbacks {
@@ -1330,7 +1354,8 @@ for fallback in &report.hull_quadratic_fallbacks {
 }
 ```
 
-Printing the report also shows the number of cones and fallbacks.
+Printing the report also shows the number of epigraphs, explicit cones, and
+fallbacks.
 
 Transformed disjunct groups cannot be extended. Bound and parameter mutations
 that would invalidate transformed rows are rejected. To change dependent data,
