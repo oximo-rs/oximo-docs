@@ -255,6 +255,15 @@ Both heads of a rotated cone are affine expressions or plain numbers, such as
 `rotated(t, 1.0)`. The cone itself requires them to be nonnegative, so you do not
 declare separate sign constraints.
 
+A quadratic constraint written with `constraint!` is also treated as a cone
+when it has one of these exact shapes, written with either `<=` or `>=`:
+
+- `sum p_i x_i^2 <= n t^2` with `t >= 0` (standard cone), or
+- `sum p_i x_i^2 <= c u v` with `u, v >= 0` (rotated cone),
+
+where every `p_i`, `n` and `c` is positive and there are no linear terms or
+constants.
+
 SOC components and bounds, PSD matrix entries, and indicator consequents must
 have constant or affine Rust types. Narrow dynamic expressions explicitly with
 `try_affine()` before passing them to these constructors:
@@ -642,7 +651,7 @@ linear terms and indexed aggregations. [`Expr`][Expr] provides:
 // Rosenbrock NLP
 objective!(m1, Min, (1.0 - x).powi(2) + 100.0 * (y - x.powi(2)).powi(2));
 
-// Quadratic expression (this disk may be recognized as a second-order cone)
+// Quadratic constraint (QCP)
 constraint!(m2, disk, x.square() + y.square() <= 1.0);
 
 // Second-order cone ||(x, y)|| <= t (model kind: SOCP)
